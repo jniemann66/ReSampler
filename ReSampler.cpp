@@ -178,7 +178,7 @@ int main(int argc, char * argv[])
 		if (!ci.outBitFormat.empty()) {  // new output bit format requested
 			ci.outputFormat = determineOutputFormat(outFileExt, ci.outBitFormat);
 			if (ci.outputFormat) {
-                std::cout << "Changing output bit format to " << ci.outBitFormat << std::endl;
+				std::cout << "Changing output bit format to " << ci.outBitFormat << std::endl;
 			}
 			else { // user-supplied bit format not valid; try choosing appropriate format
 				determineBestBitFormat(ci.outBitFormat, ci.inputFilename, ci.outputFilename);
