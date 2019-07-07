@@ -178,21 +178,13 @@ int main(int argc, char * argv[])
 		if (!ci.outBitFormat.empty()) {  // new output bit format requested
 			ci.outputFormat = determineOutputFormat(outFileExt, ci.outBitFormat);
 			if (ci.outputFormat) {
-#ifdef COMPILING_ON_ANDROID
-				ANDROID_OUT("Changing output bit format to %s", ANDROID_STDTOC(ci.outBitFormat));
-#else
-				std::cout << ci.outBitFormat << std::endl;
-#endif
+                std::cout << "Changing output bit format to " << ci.outBitFormat << std::endl;
 			}
 			else { // user-supplied bit format not valid; try choosing appropriate format
 				determineBestBitFormat(ci.outBitFormat, ci.inputFilename, ci.outputFilename);
 				ci.outputFormat = determineOutputFormat(outFileExt, ci.outBitFormat);
 				if (ci.outputFormat) {
-#ifdef COMPILING_ON_ANDROID
-					ANDROID_OUT("Changing output bit format to %s", ANDROID_STDTOC(ci.outBitFormat));
-#else
 					std::cout << "Changing output bit format to " << ci.outBitFormat << std::endl;
-#endif         
 				}
 				else {
 					std::cout << "Warning: NOT Changing output file bit format !" << std::endl;
