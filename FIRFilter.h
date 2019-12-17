@@ -12,30 +12,32 @@
 #ifndef FIRFFILTER_H_
 #define FIRFFILTER_H_
 
+#include "alignedmalloc.h"
+#include "factorial.h"
+
 #include <typeinfo>
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
 #include <complex>
+#include <cstring>
 #include <cstdint>
 #include <cassert>
 #include <vector>
 
-#if !defined(__ANDROID__) && !defined(__arm__) && !defined(__aarch64__)
-#include <xmmintrin.h>
+#if defined(__ANDROID__)
+#ifndef COMPILING_ON_ANDROID
+#define COMPILING_ON_ANDROID
+#endif
 #endif
 
 #include <fftw3.h>
-
-#include "alignedmalloc.h"
-#include "factorial.h"
 
 #define WRAP_WITH_MEMCPY
 #define FILTERSIZE_LIMIT 131071
 #define FILTERSIZE_BASE 103
 
 #ifdef USE_AVX
-
 #define ALIGNMENT_SIZE 32
 #include <immintrin.h>
 
@@ -44,7 +46,8 @@
 #define ALIGNMENT_SIZE 16
 
 #if (defined(_M_X64) || defined(__x86_64__) || defined(USE_SSE2)) // All x64 CPUs have SSE2 instructions, but some older 32-bit CPUs do not. 
-	#define USE_SIMD 1 // Vectorise main loop in FIRFilter::get() by using SSE2 SIMD instrinsics 
+	#include <xmmintrin.h>
+	#define USE_SIMD 1 // Vectorise main loop in FIRFilter::get() by using SSE2 SIMD instrinsics
 	#define USE_SIMD_FOR_DOUBLES
 #endif
 
@@ -57,6 +60,8 @@
 #endif
 #endif
 #endif
+
+namespace ReSampler {
 
 template <typename FloatType>
 class FIRFilter {
@@ -176,7 +181,7 @@ public:
 		lastPut = 0;
 
 		// clear signal buffer
-        for (int i = 0; i < paddedLength; ++i) {
+		for (int i = 0; i < paddedLength; ++i) {
 			signal[i] = 0.0;
 			signal[i + length] = 0.0;
 		}
@@ -252,7 +257,7 @@ public:
 			k = _mm256_load_ps(kernel + i);
 
 #ifdef USE_FMA
-                        accumulator = _mm256_fmadd_ps(s, k, accumulator);
+						accumulator = _mm256_fmadd_ps(s, k, accumulator);
 #else
 			product = _mm256_mul_ps(s, k);
 			accumulator = _mm256_add_ps(product, accumulator);
@@ -323,13 +328,13 @@ public:
 
 private:
 	int length;
-	int paddedLength;
+	int paddedLength{};
 
 	FloatType* signal; // Double-length signal buffer, to facilitate fast emulation of a circular buffe
 	int currentIndex;
 	int lastPut;
-	int numVecElements;
-	uintptr_t alignMask;
+	int numVecElements{};
+	uintptr_t alignMask{};
 
 	// Polyphase Filter Kernel table:
 
@@ -350,7 +355,7 @@ private:
 		numVecElements = 1; // Scalar mode
 #endif
 
-		alignMask = -static_cast<uintptr_t>(numVecElements);
+		alignMask = static_cast<uintptr_t>(-numVecElements);
 		paddedLength = (length & alignMask) + numVecElements;
 	}
 
@@ -390,7 +395,7 @@ private:
 	void assertAlignment()
 	{
 #ifdef COMPILING_ON_ANDROID
-	    // TODO: suport 32-byte alignment for android?
+		// TODO: suport 32-byte alignment for android?
 #warning  32-byte alignment is not yet supported when compiling for android
 #else
 		const std::uintptr_t alignment = ALIGNMENT_SIZE;
@@ -449,7 +454,7 @@ double FIRFilter<double>::get() {
 		k = _mm256_load_pd(kernel + i);
 
 #ifdef USE_FMA
-                accumulator = _mm256_fmadd_pd(s, k, accumulator);
+				accumulator = _mm256_fmadd_pd(s, k, accumulator);
 #else
 		product = _mm256_mul_pd(s, k);
 		accumulator = _mm256_add_pd(product, accumulator);
@@ -465,7 +470,7 @@ double FIRFilter<double>::get() {
 #elif defined(USE_SIMD) && defined(USE_SIMD_FOR_DOUBLES) && !defined(FIR_QUAD_PRECISION)
 
 template <>
-double FIRFilter<double>::get() {
+inline double FIRFilter<double>::get() {
 
 	// SSE Implementation: Processes two doubles at a time.
 
@@ -553,20 +558,18 @@ template<typename FloatType> FloatType calcKaiserBeta(FloatType dB)
 	{
 		return 0;
 	}
-	else if ((dB >= 21.0) && (dB <= 50.0)) {
+	if ((dB >= 21.0) && (dB <= 50.0)) {
 		return 0.5842 * pow((dB - 21), 0.4) + 0.07886 * (dB - 21);
 	}
-	else if (dB > 50.0) {
+	if (dB > 50.0) {
 		return 0.1102 * (dB - 8.7);
 	}
-	else
-	{
-		return 0;
-	}
+	
+	return 0;
 }
 
 // I0() : 0th-order Modified Bessel function of the first kind:
-double I0(double z)
+inline double I0(double z)
 {
 	double result = 0.0;
 	for (int k = 0; k < 34; ++k) {
@@ -638,7 +641,7 @@ template<typename FloatType> bool applyKaiserWindow2(FloatType* filter, int Leng
 // the following is a set of Complex-In, Complex-Out transforms used for constructing a minimum-Phase FIR:
 
 // logV() : logarithm of a vector of Complex doubles
-std::vector<std::complex<double>>
+inline std::vector<std::complex<double>>
 logV(const std::vector<std::complex<double>>& input) {
 	std::vector<std::complex<double>> output(input.size(), 0);
 	std::transform(input.begin(), input.end(), output.begin(),
@@ -648,7 +651,7 @@ logV(const std::vector<std::complex<double>>& input) {
 
 // limitDynRangeV() : set a limit (-dB) on how quiet signal is allowed to be below the peak. 
 // Guaranteed to never return zero.
-std::vector<std::complex<double>>
+inline std::vector<std::complex<double>>
 limitDynRangeV(const std::vector<std::complex<double>>& input, double dynRangeDB) {
 	double dynRangeLinear = pow(10, std::abs(dynRangeDB) / 20.0); // will give same result for positive or negative dB values.
 	
@@ -684,7 +687,7 @@ limitDynRangeV(const std::vector<std::complex<double>>& input, double dynRangeDB
 }
 
 // realV() : real parts of a vector of Complex doubles
-std::vector<std::complex<double>>
+inline std::vector<std::complex<double>>
 realV(const std::vector<std::complex<double>>& input) {
 	std::vector<std::complex<double>> output(input.size(), 0);
 	std::transform(input.begin(), input.end(), output.begin(),
@@ -693,7 +696,7 @@ realV(const std::vector<std::complex<double>>& input) {
 }
 
 // imagV() : imaginary parts of a vector of Complex doubles (answer placed in imaginary part of output):
-std::vector<std::complex<double>>
+inline std::vector<std::complex<double>>
 imagV(const std::vector<std::complex<double>>& input) {
 	std::vector<std::complex<double>> output(input.size(), 0);
 	std::transform(input.begin(), input.end(), output.begin(),
@@ -702,7 +705,7 @@ imagV(const std::vector<std::complex<double>>& input) {
 }
 
 // expV() : exp of a vector of Complex doubles
-std::vector<std::complex<double>>
+inline std::vector<std::complex<double>>
 expV(const std::vector<std::complex<double>>& input) {
 	std::vector<std::complex<double>> output(input.size(), 0);
 	std::transform(input.begin(), input.end(), output.begin(),
@@ -711,7 +714,7 @@ expV(const std::vector<std::complex<double>>& input) {
 }
 
 // fftV() : FFT of vector of Complex doubles
-std::vector<std::complex<double>>
+inline std::vector<std::complex<double>>
 fftV(std::vector<std::complex<double>> input) {
 	
 	std::vector<std::complex<double>> output(input.size(), 0); // output vector
@@ -730,7 +733,7 @@ fftV(std::vector<std::complex<double>> input) {
 }
 
 // ifftV() : Inverse FFT of vector of Complex doubles
-std::vector<std::complex<double>>
+inline std::vector<std::complex<double>>
 ifftV(std::vector<std::complex<double>> input) {
 
 	std::vector<std::complex<double>> output(input.size(), 0); // output vector
@@ -759,7 +762,7 @@ ifftV(std::vector<std::complex<double>> input) {
 // The hilbert Transform is placed in the imaginary part, and the original input is in the real part.)
 // See Footnote* below for more information on algorithm ...
 
-std::vector<std::complex<double>>
+inline std::vector<std::complex<double>>
 AnalyticSignalV(const std::vector<std::complex<double>>& input) {
 
 	std::vector<std::complex<double>> U = fftV(input);
@@ -805,16 +808,6 @@ void makeMinPhase(FloatType* pFIRcoeffs, size_t length)
 		complexInput.emplace_back(0, 0);
 	}
 
-	/*
-	// pad with trailing zeros
-	for (int n = 0; n < fftLength; ++n) {
-		if (n<length)
-			complexInput.push_back({ pFIRcoeffs[n], 0 });
-		else
-			complexInput.push_back({ 0, 0 }); // pad remainder with zeros
-	}
-	*/
-
 	assert(complexInput.size() == fftLength); // make sure padding worked properly.
 
 	// Formula is as follows:
@@ -834,7 +827,7 @@ void makeMinPhase(FloatType* pFIRcoeffs, size_t length)
 	std::reverse(complexOutput.begin(), complexOutput.end());
 
 	// write all the real parts back to coeff array:
-	int n = 0;
+	size_t n = 0;
 	for (auto &c : complexOutput) {
 		if (n < length)
 			pFIRcoeffs[n] = c.real();	
@@ -844,91 +837,38 @@ void makeMinPhase(FloatType* pFIRcoeffs, size_t length)
 	}
 }
 
-// makeMinPhase2() : take linear-phase FIR filter coefficients, and return a new vector of minimum-phase coefficients
-template<typename FloatType>
-std::vector<FloatType> makeMinPhase2(const FloatType* pFIRcoeffs, size_t length)
-{
-	auto fftLength = static_cast<size_t>(pow(2, 2.0 + ceil(log2(length)))); // use FFT 4x larger than (length rounded-up to power-of-2)
-
-	std::vector <std::complex<double>> complexInput;
-	std::vector <std::complex<double>> complexOutput;
-
-	// Pad zeros on either side of FIR:
-
-	size_t frontPaddingLength = (fftLength - length) / 2;
-	size_t backPaddingLength = fftLength - frontPaddingLength - length;
-
-	for (size_t n = 0; n < frontPaddingLength; ++n) {
-		complexInput.emplace_back(0, 0);
-	}
-
-	for (size_t n = 0; n < length; ++n) {
-		complexInput.push_back({ pFIRcoeffs[n], 0 });
-	}
-
-	for (size_t n = 0; n < backPaddingLength; ++n) {
-		complexInput.emplace_back(0, 0);
-	}
-
-	assert(complexInput.size() == fftLength); // make sure padding worked properly.
-
-	// Formula is as follows:
-
-	// take the reversed array of
-	// the real parts of
-	// the ifft of
-	// e to the power of
-	// the Analytic Signal of
-	// the real parts of 
-	// the log of
-	// the dynamic-ranged limited version of
-	// the fft of 
-	// the original filter
-
-	complexOutput = realV(ifftV(expV(AnalyticSignalV(realV(logV(limitDynRangeV(fftV(complexInput), -190)))))));
-	std::reverse(complexOutput.begin(), complexOutput.end());
-
-	std::vector<FloatType> minPhaseCoeffs;
-	minPhaseCoeffs.reserve(complexOutput.size());
-	for (auto & c : complexOutput) {
-		minPhaseCoeffs.push_back(c.real());
-	}
-
-	return minPhaseCoeffs;
-}
-
 ///////////////////////////////////////////////////////////////////////
 // utility functions:
 
 // dumpKaiserWindow() - utility function for displaying Kaiser Window:
-void dumpKaiserWindow(size_t length, double Beta) {
+inline void dumpKaiserWindow(size_t length, double Beta) {
 	std::vector<double> f(length, 1);
-	applyKaiserWindow<double>(f.data(), length, Beta);
-	for (int i = 0; i < length; ++i) {
+	applyKaiserWindow<double>(f.data(), static_cast<int>(length), Beta);
+	for (size_t i = 0; i < length; ++i) {
 		std::cout << i << ": " << f[i] << std::endl;
 	}
 
 	std::vector<double> g(length, 1);
-	applyKaiserWindow<double>(g.data(), length, Beta);
-	for (int i = 0; i < length; ++i) {
+	applyKaiserWindow<double>(g.data(), static_cast<int>(length), Beta);
+	for (size_t i = 0; i < length; ++i) {
 		std::cout << i << ": " << g[i] << std::endl;
 	}
 }
 
 // asserts that the two Kaiser Window formulas agree with each other (within a specified tolerance)
-void assertKaiserWindow(size_t length, double Beta) {
+inline void assertKaiserWindow(size_t length, double Beta) {
 
 	const double tolerance = 0.001;
 	const double upper = 1.0 + tolerance;
 	const double lower = 1.0 - tolerance;
 
 	std::vector<double> f(length, 1);
-	applyKaiserWindow2<double>(f.data(), length, Beta);
+	applyKaiserWindow2<double>(f.data(), static_cast<int>(length), Beta);
 
 	std::vector<double> g(length, 1);
-	applyKaiserWindow<double>(g.data(), length, Beta);
+	applyKaiserWindow<double>(g.data(), static_cast<int>(length), Beta);
 
-	for (int i = 0; i < length; ++i) {
+	for (size_t i = 0; i < length; ++i) {
 		double ratio = f[i] / g[i];
 		assert(ratio < upper && ratio > lower);
 	}
@@ -941,7 +881,7 @@ template<typename FloatType> void dumpFilter(const FloatType* Filter, int Length
 	}
 }
 
-void dumpComplexVector(const std::vector<std::complex<double>>& v)
+inline void dumpComplexVector(const std::vector<std::complex<double>>& v)
 {
 	for (auto &c : v) {
 		std::cout << c.real() << "+" << c.imag() << "i" << std::endl;
@@ -972,7 +912,7 @@ void dumpFFT(FloatType* data, size_t length)
 	}
 }
 
-void testSinAccuracy() {
+inline void testSinAccuracy() {
 	
 	const int numSteps = 10000000;
 	const double inc = M_PI / numSteps;
@@ -996,6 +936,8 @@ void testSinAccuracy() {
 	std::cout << "maxError: " << std::setprecision(33) << maxError << std::endl;
 	std::cout << "worstT: " << worstT << std::endl;
 }
+
+} // namespace ReSampler
 
 // *Marple, S. L. "Computing the Discrete-Time Analytic Signal via FFT." IEEE Transactions on Signal Processing. Vol. 47, 1999, pp. 2600�2603
 

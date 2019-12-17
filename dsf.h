@@ -13,17 +13,21 @@
 // dsf.h
 // simple dsf file reader
 
+#include "osspecific.h"
+
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <string>
 #include <iostream>
 #include <fstream>
 
-#include "osspecific.h"
-
 #define DSF_FORMAT 0x00310000 // note: take care to make sure this doesn't clash with future libsndfile formats (unlikely)
 
 #pragma pack(push, r1, 1)
+
+namespace ReSampler {
+
 struct DsfDSDChunk {
 	uint32_t header;	// expected: "DSD "
 	uint64_t length;	// expected: 28
@@ -65,9 +69,9 @@ struct DsfDataChunk {
 };
 #pragma pack(pop, r1)
 
-enum OpenMode {
-	dsf_read,
-	dsf_write
+enum DsfOpenMode {
+	Dsf_read,
+	Dsf_write
 };
 
 #define DSF_ID_DSD 0x20445344
@@ -84,13 +88,21 @@ class DsfFile
 {
 public:
 	// Construction / destruction
-	DsfFile(const std::string& path, OpenMode mode = dsf_read) : path(path), mode(mode)
+
+#ifdef __clang__
+	// see www.open-std.org/jtc1/sc22/wg21/docs/cwg_defects.html#777
+	explicit DsfFile(const std::string& path, int mode = Dsf_read, int ignored1 = 0, int ignored2 = 0, int ignored3 = 0) : path(path), mode(static_cast<DsfOpenMode>(mode))
+#else
+	template<typename... OtherArgs>
+	DsfFile(const std::string& path, int mode = Dsf_read, OtherArgs... ignored) : path(path), mode(static_cast<DsfOpenMode>(mode))
+#endif
+
 	{
 		assertSizes();
 		file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
 		switch (mode) {
-		case dsf_read:
+		case Dsf_read:
 			try {
 				file.open(path, std::ios::in | std::ios::binary);
 				err = false;
@@ -112,10 +124,10 @@ public:
 			currentChannel = 0;
 			break;
 
-		case dsf_write:
+		case Dsf_write:
 			break;
 		}
-    }
+	}
 
 	~DsfFile() {
 		if(file.is_open())
@@ -126,26 +138,25 @@ public:
 	}
 
 	// API:
-
 	bool error() const {
 		return err;
 	}
 
 	unsigned int channels() const {
 		return numChannels;
-    }
+	}
 
 	unsigned int samplerate() const {
 		return _sampleRate;
-    }
+	}
 
 	uint64_t frames() const {
 		return numFrames;
-    }
+	}
 
 	uint64_t samples() const {
 		return numSamples;
-    }
+	}
 
 	int format() const {
 		return DSF_FORMAT;
@@ -188,7 +199,7 @@ public:
 				bufferIndex = 0;
 			}
 
-            buffer[i] = static_cast<FloatType>(samplTbl[channelBuffer[currentChannel][bufferIndex]][currentBit]);
+			buffer[i] = static_cast<FloatType>(samplTbl[channelBuffer[currentChannel][bufferIndex]][currentBit]);
 		
 			++samplesRead;
 
@@ -203,7 +214,7 @@ public:
 			}
 		}
 		return samplesRead;
-    }
+	}
 
 	// testRead() : reads the entire file 
 	// and confirms number of samples read equals number of samples expected:
@@ -225,6 +236,7 @@ public:
 	}
 
 	uint64_t seek(uint64_t pos, int whence) {
+		(void)whence; // unused
 		// reset initial conditions:
 		bufferIndex = blockSize; // empty (zero -> full)
 		currentBit = 0;
@@ -242,7 +254,7 @@ private:
 	DsfDataChunk dsfDataChunk;
 	DsfChannelType dsfChannelType;
 	std::string path;
-	OpenMode mode;
+	DsfOpenMode mode;
 	std::fstream file;
 	bool err;
 	uint32_t blockSize;
@@ -350,7 +362,7 @@ private:
 
 	// readBlocks() : reads blockSize bytes into each channelBuffer for numChannels channels
 	uint32_t readBlocks() {
-        if (file.tellg() >= static_cast<std::istream::pos_type>(endOfData))
+		if (file.tellg() >= static_cast<std::istream::pos_type>(endOfData))
 			return 0;
 
 		for (size_t ch = 0; ch < numChannels; ++ch) {
@@ -369,5 +381,7 @@ private:
 		}
 	}
 };
+
+} // namespace ReSampler
 
 #endif // DSF_H_

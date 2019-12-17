@@ -10,50 +10,74 @@
 #ifndef RESAMPLER_H
 #define RESAMPLER_H 1
 
-#include "sndfile.h"
-#include "sndfile.hh"
-
-#include <string>
-#include <map>
-
-struct ConversionInfo;
-
-const std::string strVersion("2.0.7");
-const std::string strUsage("usage: ReSampler -i <inputfile> [-o <outputfile>] -r <samplerate> [-b <bitformat>] [-n [<normalization factor>]]\n");
-const std::string strExtraOptions(
-	"--help\n"
-	"--version\n"
-	"--compiler\n"
-	"--sndfile-version\n"
-	"--listsubformats <ext>\n"
-	"--showDitherProfiles\n"
-	"--gain [<amount>]\n"
-	"--doubleprecision\n"
-	"--dither [<amount>] [--autoblank] [--ns [<ID>]] [--flat-tpdf] [--seed [<num>]] [--quantize-bits <number of bits>]\n"
-	"--noDelayTrim\n"
-	"--minphase\n"
-	"--flacCompression <compressionlevel>\n"
-	"--vorbisQuality <quality>\n"
-	"--noClippingProtection\n"
-	"--relaxedLPF\n"
-	"--steepLPF\n"
-	"--lpf-cutoff <percentage> [--lpf-transition <percentage>]\n"
-	"--mt\n"
-	"--rf64\n"
-	"--noPeakChunk\n"
-	"--noMetadata\n"
-	"--singleStage\n"
-    "--multiStage\n"
-	"--maxStages\n"
-	"--showStages\n"
-
-#if defined (_WIN32) || defined (_WIN64)
-	"--tempDir <path>\n"
+#ifdef __APPLE__
+#include <unistd.h>
+#include <libproc.h>
 #endif
 
-	"--showTempFile\n"
-	"--noTempFile\n"
-);
+#if defined (__MINGW64__) || defined (__MINGW32__) || defined (__GNUC__)
+#ifdef USE_QUADMATH
+#include <quadmath.h>
+#endif
+#endif
+
+#define _USE_MATH_DEFINES
+#include <cmath>
+
+#include "osspecific.h"
+#include "sndfile.h"
+#include "sndfile.hh"
+#include "conversioninfo.h"
+#include "dsf.h"
+#include "dff.h"
+
+#include <type_traits>
+#include <vector>
+#include <string>
+#include <iostream>
+#include <map>
+#include <functional>
+
+namespace ReSampler {
+
+const std::string strVersion("2.0.8");
+const std::string strUsage("usage: ReSampler -i <inputfile> [-o <outputfile>] -r <samplerate> [-b <bitformat>] [-n [<normalization factor>]]\n");
+const std::string strExtraOptions(
+		"--help\n"
+		"--version\n"
+		"--compiler\n"
+		"--sndfile-version\n"
+		"--listsubformats <ext>\n"
+		"--showDitherProfiles\n"
+		"--gain [<amount>]\n"
+		"--doubleprecision\n"
+		"--dither [<amount>] [--autoblank] [--ns [<ID>]] [--flat-tpdf] [--seed [<num>]] [--quantize-bits <number of bits>]\n"
+		"--noDelayTrim\n"
+		"--minphase\n"
+		"--flacCompression <compressionlevel>\n"
+		"--vorbisQuality <quality>\n"
+		"--noClippingProtection\n"
+		"--relaxedLPF\n"
+		"--steepLPF\n"
+		"--lpf-cutoff <percentage> [--lpf-transition <percentage>]\n"
+		"--mt\n"
+		"--rf64\n"
+		"--noPeakChunk\n"
+		"--noMetadata\n"
+		"--singleStage\n"
+		"--multiStage\n"
+		"--maxStages\n"
+		"--showStages\n"
+		"--rawInput <samplerate> <bitformat> [numChannels]\n"
+		"--progress-updates <0..100>\n"
+
+		#if defined (_WIN32) || defined (_WIN64)
+		"--tempDir <path>\n"
+		#endif
+
+		"--showTempFile\n"
+		"--noTempFile\n"
+		);
 
 const double clippingTrim = 1.0 - (1.0 / (1 << 23));
 const int maxClippingProtectionAttempts = 3;
@@ -61,7 +85,7 @@ const int maxClippingProtectionAttempts = 3;
 #define BUFFERSIZE 32768 // buffer size for file reads
 
 // map of commandline subformats to libsndfile subformats:
-const std::map<std::string,int> subFormats = { 
+const std::map<std::string, int> subFormats = {
 	{ "s8",SF_FORMAT_PCM_S8 },
 	{ "u8",SF_FORMAT_PCM_U8 },
 	{ "8",SF_FORMAT_PCM_U8 },	// signed or unsigned depends on major format of output file eg. wav files unsigned
@@ -135,65 +159,70 @@ struct MetaData
 	std::string genre;
 
 	// The following is only relevant for bext chunks in Broadcast Wave files:
-	bool has_bext_fields;
-	SF_BROADCAST_INFO broadcastInfo;
+	bool has_bext_fields{};
+	SF_BROADCAST_INFO broadcastInfo{};
 
 	// The following is only relevant for cart chunks:
-	bool has_cart_chunk;
-	LargeSFCartInfo cartInfo;
+	bool has_cart_chunk{};
+	LargeSFCartInfo cartInfo{};
 
 };
 
-#if defined (_MSC_VER)
-#define TEMPFILE_OPEN_METHOD_WINAPI
-#define NOMINMAX
-#include <Windows.h>
-#include <codecvt>
+class OutputManager {
+	static std::function<void(int)> progressFunc;
 
-//#define TEMPFILE_OPEN_METHOD_STD_TMPNAM
-// 1. tempnam() is problematic :-)
-// 2. tmpfile() doesn't seem to work reliably with MSVC - probably related to this:
-// http://www.mega-nerd.com/libsndfile/api.html#open_fd (see note regarding differing versions of MSVC runtime DLL)
-
-#elif (defined (__MINGW64__) || defined (__MINGW32__)) && (defined (_WIN32) || defined (_WIN64)) 
-#define TEMPFILE_OPEN_METHOD_WINAPI
-#define UNICODE // turns TCHAR into wchar_t
-#include <windows.h>
-#include <codecvt>
-
-#else
-#define TEMPFILE_OPEN_METHOD_STD_TMPFILE
-//#define TEMPFILE_OPEN_METHOD_MKSTEMP
-
-#endif
+public:
+	static std::function<void (int)> getProgressFunc();
+	static void setProgressFunc(const std::function<void (int)> &value);
+	static void callProgressFunc(int percentComplete);
+};
 
 bool checkSSE2();
 bool checkAVX();
 bool showBuildVersion();
 bool parseGlobalOptions(int argc, char * argv[]);
-bool determineBestBitFormat(std::string & BitFormat, const std::string & inFilename, const std::string & outFilename);
+bool determineBestBitFormat(std::string& bitFormat, const ConversionInfo& ci);
 int determineOutputFormat(const std::string & outFileExt, const std::string & bitFormat);
 void listSubFormats(const std::string & f);
 template<typename FileReader, typename FloatType> bool convert(ConversionInfo & ci);
 template<typename FloatType>
 SndfileHandle* getTempFile(int inputFileFormat, int nChannels, const ConversionInfo& ci, std::string& tmpFilename);
-int getDefaultNoiseShape(int sampleRate);
 void showDitherProfiles();
 int getSfBytesPerSample(int format);
 bool checkWarnOutputSize(sf_count_t inputSamples, int bytesPerSample, int numerator, int denominator);
 template<typename IntType> std::string fmtNumberWithCommas(IntType n);
 void printSamplePosAsTime(sf_count_t samplePos, unsigned int sampleRate);
 
-void generateExpSweep(const std::string & filename, 
-	int sampleRate = 96000, // samplerate of generated file
-	int format = SF_FORMAT_WAV | SF_FORMAT_FLOAT, // format of generated file
-	double duration = 10.0, // approximate duration in seconds 
-	int octaves = 12, // number of octaves below Nyquist for lowest frequency 
-	double amplitude_dB = -3.0 // amplitude in dB relative to FS
-);
+void generateExpSweep(const std::string & filename,
+					  int sampleRate = 96000, // samplerate of generated file
+					  int format = SF_FORMAT_WAV | SF_FORMAT_FLOAT, // format of generated file
+					  double duration = 10.0, // approximate duration in seconds
+					  int octaves = 12, // number of octaves below Nyquist for lowest frequency
+					  double amplitude_dB = -3.0 // amplitude in dB relative to FS
+		);
 
 bool getMetaData(MetaData& metadata, SndfileHandle& infile);
 bool setMetaData(const MetaData& metadata, SndfileHandle& outfile);
 void showCompiler();
+int runCommand(int argc, char** argv);
+
+template <typename InputIterator>
+int runCommand(InputIterator first, InputIterator last)
+{
+	std::vector<const char*> argv;
+	for (auto it = first; it != last; ++it) {
+		argv.push_back(it->c_str());
+	}
+
+	return runCommand(argv.size(), const_cast<char**>(argv.data()));
+}
+
+template <typename ContainerType>
+int runCommand(const ContainerType& args)
+{
+	return runCommand(args.cbegin(), args.cend());
+}
+
+} // namespace ReSampler
 
 #endif // RESAMPLER_H

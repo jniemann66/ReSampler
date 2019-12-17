@@ -10,20 +10,45 @@
 #ifndef OSSPECIFIC_H
 #define OSSPECIFIC_H 1
 
-// macros which address differences between operating systems go here. 
+// macros which address differences between compilers / operating systems go here.
 
 #ifdef _WIN32
+/* begin Windows-specific */
 
 #if defined(_MSC_VER)
-// MSVC specific
+/* MSVC */
 #define NOMINMAX // disable min() and max() macros (use std:: library instead)
 #pragma warning(disable : 4996) // suppress pointless MS "deprecation" warnings
 #pragma warning(disable : 4244) // suppress double-to-float warnings
+#define BYTESWAP_METHOD_MSVCRT
+
+#else
+/* Not MSVC */
+#define BYTESWAP_METHOD_BUILTIN // note : gcc >= 4.8.1 , clang >= 3.5
 #endif
 
-#else // Non-Windows:
+#define TEMPFILE_OPEN_METHOD_WINAPI
+// Note: tmpfile() doesn't seem to work reliably with MSVC - probably related to this:
+// http://www.mega-nerd.com/libsndfile/api.html#open_fd (see note regarding differing versions of MSVC runtime DLL)
+
+#ifndef UNICODE
+#define UNICODE // turns TCHAR into wchar_t
+#endif 
+
+#include <Windows.h>
+#include <codecvt>
+/* end Windows-Specific*/
+
+#else 
+
+/* begin Non-Windows */
+#include <cstdint>
 typedef uint64_t __int64;
 #define stricmp strcasecmp
-#endif // ends Non-Windows
+#define TEMPFILE_OPEN_METHOD_STD_TMPFILE
+#define BYTESWAP_METHOD_BUILTIN
+/* end non-Windows */
+
+#endif
 
 #endif // OSSPECIFIC_H

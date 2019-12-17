@@ -50,27 +50,34 @@ clone this repository to a local directory, and use one of the following command
 
 standard 64-bit build:
 ~~~
-g++ -pthread -std=c++11 ReSampler.cpp -lfftw3 -lsndfile -o ReSampler -O3
+g++ -pthread -std=c++11 main.cpp ReSampler.cpp conversioninfo.cpp -lfftw3 -lsndfile -o ReSampler -O3
 ~~~
 
 AVX Build:
 ~~~
-g++ -pthread -std=c++11 ReSampler.cpp -lfftw3 -lsndfile -o ReSampler -O3 -DUSE_AVX -mavx
+g++ -pthread -std=c++11 main.cpp ReSampler.cpp conversioninfo.cpp -lfftw3 -lsndfile -o ReSampler -O3 -DUSE_AVX -mavx
 ~~~
 
 AVX + FMA (>= Haswell, PileDriver):
 ~~~
-g++ -pthread -std=c++11 ReSampler.cpp -lfftw3 -lsndfile -o ReSampler -O3 -DUSE_AVX -DUSE_FMA -mavx -mfma
+g++ -pthread -std=c++11 main.cpp ReSampler.cpp conversioninfo.cpp -lfftw3 -lsndfile -o ReSampler -O3 -DUSE_AVX -DUSE_FMA -mavx -mfma
 ~~~
 
 Quad Precision (experimental)
 ~~~
-g++ -pthread -std=gnu++11 ReSampler.cpp -lfftw3 -lsndfile -o ReSampler -O3 -lquadmath -DUSE_QUADMATH
+g++ -pthread -std=gnu++11 main.cpp ReSampler.cpp conversioninfo.cpp -lfftw3 -lsndfile -o ReSampler -O3 -lquadmath -DUSE_QUADMATH
 ~~~
 
 #### using clang:
 ~~~
-clang++ -pthread -std=c++11 ReSampler.cpp -lfftw3 -lsndfile -o ReSampler-clang -O3
+clang++ -pthread -std=c++11 main.cpp ReSampler.cpp conversioninfo.cpp -lfftw3 -lsndfile -o ReSampler-clang -O3
+~~~
+
+#### using cmake:
+~~~
+cd path-to-where-you-want-the-binary
+cmake -DCMAKE_BUILD_TYPE=Release path-to-ReSampler
+make
 ~~~
 
 # misc tasks:
@@ -90,7 +97,9 @@ the g++ commands can be put into the **tasks.json** file. For example.:
     "args": [
         "-pthread",
         "-std=c++11",
+        "main.cpp",
         "ReSampler.cpp",
+        "conversioninfo.cpp",
         "-l",
         "fftw3",
         "-l",

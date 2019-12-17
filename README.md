@@ -167,9 +167,13 @@ The temp file is used to facilitate fast gain adjustment when clipping is detect
 the entire conversion will need to be performed again if clipping is detected. 
 *Note: versions of Resampler prior to 2.0.3 did not use a temporary file*)
 
+**--raw-input &lt;samplerate&gt; &lt;bit-format&gt; [number of channels]** : read raw input data (ie with no header). Since there is no header, you must specify the sample rate, bit format, and number of channels of the input file using the syntax above. If the number of channels is omitted, single-channel (mono) input is assumed. Accepted bit formats for raw input are: 8, s8, u8, 16, 24, 32, 32f, 64f, alaw, ulaw, gsm610, dwvw12, dwvw16, dwvw24, vox-adpcm
+
+**--progress-updates &lt;0..100&gt;** : number of progress update notifications to be sent by the converter throughout the conversion. (0 = no updates, 100 = every 1% etc). Default is 10
+
 #### Example
 
-To convert a 24-bit, 96kHz .wav input file to 16-bit, 44.1kHz .flac output file, with steep lowpass filter and dithering:
+To convert a 96kHz 24-bit .wav input file to 44.1kHz 16-bit .flac output file, with steep lowpass filter and dithering:
 
 ~~~
 ReSampler.exe -i c:\pathto\somefile.wav -o c:\pathto\convertedfile.flac -r 44100 -b 16 --steepLPF --dither
@@ -291,6 +295,8 @@ Resampler was originally developed on Visual C++ 2015, but also compiles just as
 
 [Mac](mac-build.md)
 
+[Raspbian](rpi-build.md)
+
 ----------
 
 ## Description of Binaries included in distribution
@@ -309,7 +315,7 @@ Resampler was originally developed on Visual C++ 2015, but also compiles just as
 
 ## Acknowledgements
 
-The following libraries are used in ReSampler:
+#### The following libraries are used in ReSampler:
 
 <table>
     <thead>
@@ -345,3 +351,9 @@ The following libraries are used in ReSampler:
         </tr>
     </tbody>
 </table>
+
+#### Thanks to the following github users for their [contributions](https://github.com/jniemann66/ReSampler/graphs/contributors):
+
+[@mgood7123](https://github.com/mgood7123)
+
+[@godsic](https://github.com/godsic)

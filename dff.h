@@ -10,18 +10,24 @@
 #ifndef DFF_H_
 #define DFF_H_
 
+#include "osspecific.h"
+
+#ifdef BYTESWAP_METHOD_MSVCRT
+#include <stdlib.h>
+#endif
+
+#include <algorithm>
 #include <iostream>
 #include <cassert>
 #include <cstdint>
 #include <string>
 #include <fstream>
 
-#include "osspecific.h"
-
 #define DFF_MAX_CHANNELS 6 
 #define DFF_FORMAT 0x00300000 // note: take care to make sure this doesn't clash with future libsndfile formats (unlikely)
-
 #pragma pack(push, r1, 1)
+
+namespace ReSampler {
 
 struct dffChunkHeader {
 	uint32_t ckID; // chunkid
@@ -120,9 +126,9 @@ struct FormDSDChunk {
 #define CKID_DIAR 0x44494152
 #define CKID_DITI 0x44495449
 
-enum dffOpenMode {
-	dff_read,
-	dff_write
+enum DffOpenMode {
+	Dff_read,
+	Dff_write
 };
 
 // DffFile interface:
@@ -131,12 +137,20 @@ class DffFile
 {
 public:
 	// Construction / destruction
-    explicit DffFile(const std::string& path, dffOpenMode mode = dff_read) : path(path), mode(mode)
+
+#ifdef __clang__
+	// see www.open-std.org/jtc1/sc22/wg21/docs/cwg_defects.html#777
+	explicit DffFile(const std::string& path, int mode = Dff_read, int ignored1 = 0, int ignored2 = 0, int ignored3 = 0) : path(path), mode(static_cast<DffOpenMode>(mode))
+#else
+	template <typename... OtherArgs>
+	explicit DffFile(const std::string& path, int mode = Dff_read, OtherArgs... ignored) : path(path), mode(static_cast<DffOpenMode>(mode))
+#endif
+
 	{
 		file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
 		switch (mode) {
-		case dff_read:
+		case Dff_read:
 			try {
 				file.open(path, std::ios::in | std::ios::binary);
 				err = false;
@@ -163,10 +177,10 @@ public:
 			currentChannel = 0;
 			break;
 			
-		case dff_write:
+		case Dff_write:
 			break;
 		}
-    }
+	}
 
 	~DffFile() {
 		if (file.is_open())
@@ -183,19 +197,19 @@ public:
 
 	unsigned int channels() const {
 		return numChannels;
-    }
+	}
 
 	unsigned int samplerate() const {
 		return _sampleRate;
-    }
+	}
 
 	uint64_t frames() const {
 		return numFrames;
-    }
+	}
 
 	uint64_t samples() const {
 		return numSamples;
-    }
+	}
 
 	int format() const {
 		return DFF_FORMAT;
@@ -241,7 +255,7 @@ public:
 			}
 		}
 		return samplesRead;
-    }
+	}
 
 	// testRead() : reads the entire file 
 	// and confirms number of samples read equals number of samples expected:
@@ -258,7 +272,7 @@ public:
 	}
 
 	uint64_t seek(uint64_t pos, int whence) {
-
+		(void)whence; // unused
 		// To-do: allow seeks to positions other than beginning (requires proper calculations)
 		// reset state to initial conditions: 
 		totalBytesRead = 0;
@@ -276,7 +290,7 @@ public:
 private:
 	FormDSDChunk formDSDChunk{};
 	std::string path;
-	dffOpenMode mode;
+	DffOpenMode mode;
 	std::fstream file;
 	bool err;
 	const uint32_t blockSize = 4096;
@@ -300,6 +314,7 @@ private:
 		chunkHeader->ckDataSize = bigEndianRead64();
 	}
 
+#if !defined(BYTESWAP_METHOD_MSVCRT) && !defined(BYTESWAP_METHOD_BUILTIN)
 	uint16_t swapEndian(uint16_t x) {
 		union {
 			struct {
@@ -360,7 +375,7 @@ private:
 		z.h = y.a;
 		return z.n;
 	}
-
+#endif
 
 	uint8_t bigEndianRead8() {
 		uint8_t v;
@@ -371,19 +386,43 @@ private:
 	uint16_t bigEndianRead16() {
 		uint16_t v;
 		file.read((char*)&v, sizeof(v));
+
+#if  defined(BYTESWAP_METHOD_MSVCRT)
+		return _byteswap_ushort(v);
+#elif defined(BYTESWAP_METHOD_BUILTIN)
+		return __builtin_bswap16(v);
+#else
 		return swapEndian(v);
+#endif
+
 	}
 
 	uint32_t bigEndianRead32() {
 		uint32_t v;
 		file.read((char*)&v, sizeof(v));
+
+#if  defined(BYTESWAP_METHOD_MSVCRT)
+		return _byteswap_ulong(v);
+#elif defined(BYTESWAP_METHOD_BUILTIN)
+		return __builtin_bswap32(v);
+#else
 		return swapEndian(v);
+#endif
+
 	}
 
 	uint64_t bigEndianRead64() {
 		uint64_t v;
 		file.read((char*)&v, sizeof(v));
+
+#if  defined(BYTESWAP_METHOD_MSVCRT)
+		return _byteswap_uint64(v);
+#elif defined(BYTESWAP_METHOD_BUILTIN)
+		return __builtin_bswap64(v);
+#else
 		return swapEndian(v);
+#endif
+
 	}
 
 	// readPropChunks() : read the sub-chunks of PROP chunk
@@ -529,5 +568,7 @@ private:
 		}
 	}
 };
+
+} // namespace ReSampler
 
 #endif // DFF_H_

@@ -54,7 +54,7 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceRoot}",
-                "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/include"
+                "E:\\VisualStudioExpress2015\\VC\\include"
             ],
             "defines": [
                 "_DEBUG",

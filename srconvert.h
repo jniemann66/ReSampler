@@ -20,6 +20,8 @@
 #include "fraction.h"
 #include "ReSampler.h"
 
+namespace ReSampler {
+
 static_assert(std::is_copy_constructible<ConversionInfo>::value, "ConversionInfo needs to be copy Constructible");
 static_assert(std::is_copy_assignable<ConversionInfo>::value, "ConversionInfo needs to be copy Assignable");
 
@@ -258,7 +260,7 @@ private:
 		f.numerator *= ci.overSamplingFactor;
 		f.denominator *= ci.overSamplingFactor;
 
-		FIRFilter<FloatType> firFilter(filterTaps.data(), filterTaps.size());
+		FIRFilter<FloatType> firFilter(filterTaps.data(), static_cast<int>(filterTaps.size()));
 		convertStages.emplace_back(f.numerator, f.denominator, firFilter, isBypassMode);
 		groupDelay = (ci.bMinPhase || !ci.bDelayTrim) ? 0 : (filterTaps.size() - 1) / 2 / f.denominator;
 		if (isBypassMode)
@@ -317,7 +319,7 @@ private:
 			std::vector<FloatType> filterTaps = makeFilterCoefficients<FloatType>(stageCi, fractions[i]);
 
 			// make the filter
-			FIRFilter<FloatType> firFilter(filterTaps.data(), filterTaps.size());
+			FIRFilter<FloatType> firFilter(filterTaps.data(), static_cast<int>(filterTaps.size()));
 
 			if (ci.bShowStages) { // dump stage parameters:
 				std::cout << "Stage: " << 1 + i << "\n";
@@ -381,7 +383,7 @@ private:
 
 			// set input rate of next stage
 			inputRate = stageCi.outputSampleRate;
-           
+		   
 		} // ends loop over i
 
 		if (ci.bShowStages) {
@@ -397,13 +399,15 @@ private:
 	ConversionInfo ci;
 	double groupDelay;
 	std::vector<ResamplingStage<FloatType>> convertStages;
-	int numStages;
-	int indexOfLastStage;
+	int numStages{};
+	int indexOfLastStage{};
 	std::vector<std::vector<FloatType>> intermediateOutputBuffers;	// intermediate output buffer for each ConvertStage;
 	std::vector<std::string> stageCommandLines;
 	bool isMultistage;
 	bool isBypassMode;
 	double gain;
 };
+
+} // namespace ReSampler
 
 #endif // SRCONVERT_H

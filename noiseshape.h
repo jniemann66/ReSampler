@@ -18,6 +18,8 @@
 //
 //////////////////////////
 
+namespace ReSampler {
+
 const double noiseShaperPassThrough[1] = {
 	1
 };
@@ -107,6 +109,8 @@ const double blue[23] = { // approximation of "blueing" filter (turn white noise
 	0.003235228516421,  0.002853927755039,  0.002533524334537,
 	0.002263942227748,  0.002036778620016,  0.001845025142107
 };
+
+} // namespace ReSampler
 
 /*
 *	Note on deriving FIR coefficients to achieve a desired noise-shaping response:

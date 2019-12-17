@@ -19,6 +19,5 @@ trim_trailing_whitespace = true
 # matches C++ files (4 spaces indent)
 [*.{c,cpp,h}]
 charset = utf-8
-indent_style = space
-indent_size = 4
+indent_style = tab
 trim_trailing_whitespace = true

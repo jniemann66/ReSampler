@@ -1,121 +1,52 @@
 # building ReSampler for Raspbian on Raspberry Pi
 
-(! WIP  - this doesn't work yet !)
+Building on Raspbian consists of the following 4 steps:
 
-Building on Raspbian consists of the following 3 steps:
-
+- Install development tools
 - Build and install fftw library
 - Build and install libsndfile library
 - Build and install ReSampler
 
-Note 2019-01-30 : the SSE/AVX code in FIRFilter.h is currently x86/x64 - specific and will need a new specialization for ARM using arm intrinsics.
-
-## build environment
+#### build environment
 ~~~
-sudo apt install  build-essential
+sudo apt-get install build-essential
 ~~~
 
-## fftw build/install
+#### fftw build/install
 
 ~~~
-#sudo apt install libfftw3-dev libfftw3-doc
+#sudo apt-get install libfftw3-dev libfftw3-doc
 ~~~
 
-
-[fftw source](http://www.fftw.org/fftw-3.3.6-pl2.tar.gz)
-
-*extract it to projects folder, and cd to it*
-~~~
-./configure
-make
-sudo make install
-~~~
-
-## libsndfile build/install
-
-[libsndfile 1.0.28](http://www.mega-nerd.com/libsndfile/files/libsndfile-1.0.28.tar.gz)
-
-*extract it to projects folder, and cd to it*
+#### libsndfile build/install
 
 ~~~
-sudo apt install autoconf autogen automake build-essential libasound2-dev \
-    libflac-dev libogg-dev libtool libvorbis-dev pkg-config python
-
-./configure --prefix=/usr    \
-            --disable-static \
-            --docdir=/usr/share/doc/libsndfile-1.0.28 &&
-make
-make check
-sudo make install
+sudo apt-get install libsndfile-dev
 ~~~
 
 ## building ReSampler
 
-clone this repository to a local directory, and use one of the following command lines to compile:
+#### using gcc
 
-#### using gcc:
-
-standard 64-bit build:
-~~~
-g++ -pthread -std=c++11 ReSampler.cpp -lfftw3 -lsndfile -o ReSampler -O3
-~~~
-
-Quad Precision (experimental)
-~~~
-g++ -pthread -std=gnu++11 ReSampler.cpp -lfftw3 -lsndfile -o ReSampler -O3 -lquadmath -DUSE_QUADMATH
-~~~
-
-#### using clang: ??
-~~~
-clang++ -pthread -std=c++11 ReSampler.cpp -lfftw3 -lsndfile -o ReSampler-clang -O3
-~~~
-
-# misc tasks:
-
-## setting up C++ environment in vscode
-
-ensure that the vscode [c++ tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) are installed.
-
-the g++ commands can be put into the **tasks.json** file. For example.:
+clone this repository to a local directory, and invoke gcc
 
 ~~~
-{
-    "version": "0.1.0",
-    "command": "g++",
-    "isShellCommand": true,
-    "showOutput": "always",
-    "args": [
-        "-pthread",
-        "-std=c++11",
-        "ReSampler.cpp",
-        "-l",
-        "fftw3",
-        "-l",
-        "sndfile",
-        "-o",
-        "ReSampler",
-        "-O3",
-        "-v"
-    ]
-}
+g++ -pthread -std=c++11 main.cpp ReSampler.cpp conversioninfo.cpp -lfftw3 -lsndfile -o ReSampler -O3
 ~~~
 
-[documentation](https://code.visualstudio.com/docs/languages/cpp)
+using specific compiler options for Raspberry Pi 3:
 
-## show where gcc is looking for header files:
-~~~
-`gcc -print-prog-name=cc1plus` -v
-`gcc -print-prog-name=cc1` -v
-~~~
+*see [GCC compiler optimization for ARM-based systems](https://gist.github.com/fm4dd/c663217935dc17f0fc73c9c81b0aa845)*
 
-## show where gcc is looking for libraries:
 ~~~
-gcc -print-search-dirs
+g++ -pthread -std=c++11 main.cpp ReSampler.cpp conversioninfo.cpp -lfftw3 -lsndfile -o ReSampler -O3 -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mneon-for-64bits
 ~~~
 
-## display info about the binary you just built:
-file ReSampler
+#### using CMake
 
-*sample output:*
-
-~~ReSampler: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 2.6.32, BuildID[sha1]=2873279a9b0040a268f7c485de9027660ab3617c, not stripped~~
+~~~
+mkdir some-directory
+cd some-directory
+cmake -DCMAKE_BUILD_TYPE=Release path-to-ReSampler-source
+make
+~~~

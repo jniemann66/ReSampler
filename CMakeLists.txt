@@ -1,63 +1,9 @@
+project(ReSampler C CXX)
 cmake_minimum_required(VERSION 3.6)
-project(ReSampler)
-
+find_package(Threads REQUIRED)
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_FLAGS "-Wall -pthread -m64")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
-if(WIN32)
-
-    set(SOURCE_FILES
-            libsndfile/include/sndfile.h
-            libsndfile/include/sndfile.hh
-            fftw64/fftw3.h
-            alignedmalloc.h
-            biquad.h
-            conversioninfo.h
-            dff.h
-            ditherer.h
-            dsf.h
-            FIRFilter.h
-            fraction.h
-            noiseshape.h
-            osspecific.h
-            raiitimer.h
-            ReSampler.cpp
-            ReSampler.h
-            srconvert.h)
-
-    include_directories(libsndfile/include fftw64)
-    link_directories(libsndfile/lib fftw64)
-    link_libraries(libsndfile-1  libfftw3-3)
-    add_executable(ReSampler ${SOURCE_FILES})
-
-elseif (APPLE)
-    include_directories(/usr/local/include)
-    link_directories(/usr/local/lib)
-    link_libraries(-lfftw3 -lsndfile)
-
-    set(SOURCE_FILES
-            /usr/local/include/sndfile.h
-            /usr/local/include/sndfile.hh
-            /usr/local/include/fftw3.h
-            alignedmalloc.h
-            biquad.h
-            conversioninfo.h
-            dff.h
-            ditherer.h
-            dsf.h
-            FIRFilter.h
-            fraction.h
-            noiseshape.h
-            osspecific.h
-            raiitimer.h
-            ReSampler.cpp
-            ReSampler.h
-            srconvert.h)
-
-    add_executable(ReSampler ${SOURCE_FILES})
-elseif(ANDROID)
+if(ANDROID)
 
     add_subdirectory (android/src/fftw-3.3.8)
     set(BUILD_SHARED_LIBS_SAVED "${BUILD_SHARED_LIBS}")
@@ -77,46 +23,139 @@ elseif(ANDROID)
     include_directories($CMAKE_SOURCE_DIR/android/src/libsndfile/src)
 
     set(SOURCE_FILES
-            alignedmalloc.h
-            biquad.h
-            conversioninfo.h
-            dff.h
-            ditherer.h
-            dsf.h
-            FIRFilter.h
-            fraction.h
-            noiseshape.h
-            osspecific.h
-            raiitimer.h
-            ReSampler.cpp
-            ReSampler.h
-            srconvert.h)
+        alignedmalloc.h
+        biquad.h
+        conversioninfo.h
+        conversioninfo.cpp
+        csv.h
+        dff.h
+        ditherer.h
+        dsf.h
+        FIRFilter.h
+        fraction.h
+        factorial.h
+        noiseshape.h
+        osspecific.h
+        raiitimer.h
+        main.cpp
+        ReSampler.cpp
+        ReSampler.h
+        srconvert.h)
 
     add_library(ReSampler SHARED ${SOURCE_FILES})
     target_link_libraries(ReSampler sndfile fftw3 log)
-else ()
-    include_directories(/usr/include)
-    link_directories(/usr/lib)
-    link_libraries(-lfftw3 -lsndfile)
+
+else()
+
+    if(NOT CMAKE_CONFIGURATION_TYPES)
+
+        # single-config build (build type decided by CMAKE_BUILD_TYPE )
+
+        # for single-config builds, add additional configurations
+        set (CMAKE_CXX_FLAGS_RELEASEAVX ${CMAKE_CXX_FLAGS_RELEASE_INIT} " -DUSE_AVX -mavx")
+        set (CMAKE_CXX_FLAGS_RELEASEQUADMATH ${CMAKE_CXX_FLAGS_RELEASE_INIT} " -DUSE_QUADMATH")
+
+        if(NOT CMAKE_BUILD_TYPE)
+            message(STATUS "build type not specified - using default")
+            set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the build type" FORCE)
+        endif()
+
+        # Set the possible values of build type for cmake-gui
+        set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo" "ReleaseAVX" "ReleaseQuadmath")
+
+        message(STATUS "build type: '${CMAKE_BUILD_TYPE}'")
+
+    endif()
 
     set(SOURCE_FILES
-            /usr/include/sndfile.h
-            /usr/include/sndfile.hh
-            /usr/include/fftw3.h
-            alignedmalloc.h
-            biquad.h
-            conversioninfo.h
-            dff.h
-            ditherer.h
-            dsf.h
-            FIRFilter.h
-            fraction.h
-            noiseshape.h
-            osspecific.h
-            raiitimer.h
-            ReSampler.cpp
-            ReSampler.h
-            srconvert.h csv.h)
+        alignedmalloc.h
+        biquad.h
+        conversioninfo.h
+        csv.h
+        dff.h
+        ditherer.h
+        dsf.h
+        FIRFilter.h
+        fraction.h
+        factorial.h
+        noiseshape.h
+        osspecific.h
+        raiitimer.h
+        ReSampler.cpp
+        ReSampler.h
+        srconvert.h
+        conversioninfo.cpp)
 
-    add_executable(ReSampler ${SOURCE_FILES})
+    if (WIN32)
+
+        find_library(SNDFILE_LIBRARY NAMES libsndfile-1 libsndfile HINTS ${PROJECT_SOURCE_DIR}/libsndfile/lib)
+        message(STATUS "libsndfile library location: " ${SNDFILE_LIBRARY})
+
+        if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+            message(STATUS "Windows 32-bit")
+            include_directories(libsndfile/include fftw32)
+            link_directories(libsndfile32/lib fftw32)
+        else()
+            message(STATUS "Windows 64-bit")
+            include_directories(libsndfile/include fftw64)
+            link_directories(libsndfile/lib fftw64)
+        endif()
+
+        add_library(ReSamplerLib ${SOURCE_FILES})
+
+        if(MSVC)
+            message(STATUS "Visual Studio")
+            target_link_libraries(ReSamplerLib libsndfile-1.lib libfftw3-3.lib ${CMAKE_THREAD_LIBS_INIT})
+
+            if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
+                # create additional 64-bit config: ReleaseAVX
+                set (CMAKE_CONFIGURATION_TYPES "Debug;Release;ReleaseAVX" CACHE STRING "" FORCE)
+
+                # add /arch:AVX and /DUSE_AVX flags for ReleaseAVX configuration
+                set (CMAKE_CXX_FLAGS_RELEASEAVX ${CMAKE_CXX_FLAGS_RELEASE_INIT} " /arch:AVX /DUSE_AVX")
+
+                # same linker flags
+                set (CMAKE_EXE_LINKER_FLAGS_RELEASEAVX ${CMAKE_EXE_LINKER_FLAGS_RELEASE_INIT})
+                set (CMAKE_SHARED_LINKER_FLAGS_RELEASEAVX ${CMAKE_SHARED_LINKER_FLAGS_RELEASE})
+
+            endif()
+
+        else()
+            message(STATUS "NOT Visual Studio")
+
+            if(CMAKE_BUILD_TYPE STREQUAL "ReleaseQuadmath")
+                set(CMAKE_CXX_EXTENSIONS TRUE) # -std=gnu++11 instead of -std=c++11
+                message(STATUS "Linking with Quadmath library")
+                target_link_libraries(ReSamplerLib ${SNDFILE_LIBRARY} libfftw3-3 libquadmath ${CMAKE_THREAD_LIBS_INIT})
+            else()
+                target_link_libraries(ReSamplerLib ${SNDFILE_LIBRARY} libfftw3-3 ${CMAKE_THREAD_LIBS_INIT})
+            endif()
+
+        endif()
+
+    else()
+
+        #Not Windows ...
+
+        if(APPLE)
+            # since Mojave, cmake no longer finds these automatically:
+            # (see https://stackoverflow.com/questions/54068035/linking-not-working-in-homebrews-cmake-since-mojave)
+            include_directories(/usr/local/include)
+            link_directories(/usr/local/lib)
+        endif()
+
+        add_library(ReSamplerLib SHARED ${SOURCE_FILES})
+        if(CMAKE_BUILD_TYPE STREQUAL "ReleaseQuadmath")
+            message(STATUS "Linking with Quadmath library")
+            set(CMAKE_CXX_EXTENSIONS TRUE)  # -std=gnu++11 instead of -std=c++11
+            target_link_libraries(ReSamplerLib sndfile fftw3 quadmath ${CMAKE_THREAD_LIBS_INIT})
+        else()
+            target_link_libraries(ReSamplerLib sndfile fftw3 ${CMAKE_THREAD_LIBS_INIT})
+        endif()
+
+    endif()
+
+    add_executable(ReSampler main.cpp)
+    target_link_libraries(ReSampler ReSamplerLib)
+
 endif()

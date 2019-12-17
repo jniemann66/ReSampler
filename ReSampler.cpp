@@ -9,79 +9,20 @@
 
 // ReSampler.cpp : Audio Sample Rate Converter by Judd Niemann.
 
-#define _USE_MATH_DEFINES
-#include <cmath>
+#include "ReSampler.h"
+#include "csv.h" // to-do: check macOS
+#include "ctpl/ctpl_stl.h"
+#include "raiitimer.h"
+#include "fraction.h"
+#include "srconvert.h"
+#include "ditherer.h"
+
 #include <cstdio>
 #include <string>
 #include <iostream>
 #include <vector>
 #include <iomanip>
 #include <regex>
-
-#ifdef __APPLE__
-#include <unistd.h>
-#include <libproc.h>
-#endif
-
-#if defined (__MINGW64__) || defined (__MINGW32__) || defined (__GNUC__)
-#ifdef USE_QUADMATH
-#include <quadmath.h>
-#ifndef FIR_QUAD_PRECISION
-#define FIR_QUAD_PRECISION
-#endif
-#endif
-#endif
-
-// define COMPILING_ON_ANDROID macro first before including any user headers
-#if !defined(__ANDROID__) && !defined(__arm__) && !defined(__aarch64__)
-#else
-#define COMPILING_ON_ANDROID
-#ifdef __aarch64__
-#define COMPILING_ON_ANDROID64
-#endif
-#include <Android/log.h>
-
-// https://gist.github.com/dzhioev/6127982
-class androidbuf : public std::streambuf {
-public:
-	enum { bufsize = 1024 }; // ... or some other suitable buffer size
-	androidbuf(const int log_priority, const char * log_tag) :LOG_PRIORITY(log_priority), LOG_TAG(log_tag) { this->setp(buffer, buffer + bufsize - 1); };
-private:
-	int overflow(int c) {
-		if (c == traits_type::eof()) {
-			*this->pptr() = traits_type::to_char_type(c);
-			this->sbumpc();
-		}
-		return this->sync() ? traits_type::eof() : traits_type::not_eof(c);
-	}
-
-	int sync() {
-		int rc = 0;
-		if (this->pbase() != this->pptr()) {
-			__android_log_print(LOG_PRIORITY, LOG_TAG, "%s", std::string(this->pbase(), this->pptr() - this->pbase()).c_str());
-			rc = 0;
-			this->setp(buffer, buffer + bufsize - 1);
-		}
-		return rc;
-	}
-
-	char buffer[bufsize];
-	const char * LOG_TAG;
-	const int LOG_PRIORITY;
-};
-
-#endif
-
-#include "csv.h" // to-do: check macOS
-#include "ReSampler.h"
-#include "conversioninfo.h"
-#include "osspecific.h"
-#include "ctpl/ctpl_stl.h"
-#include "dsf.h"
-#include "dff.h"
-#include "raiitimer.h"
-#include "fraction.h"
-#include "srconvert.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // This program uses the following libraries:
@@ -98,169 +39,7 @@ private:
 //                                                                                    //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-int main(int argc, char * argv[])
-{
-#ifdef COMPILING_ON_ANDROID
-	std::cout.rdbuf(new androidbuf(ANDROID_LOG_INFO, "ReSampler"));
-	std::cerr.rdbuf(new androidbuf(ANDROID_LOG_ERROR, "ReSampler"));
-#endif
-	// test for global options
-	if (parseGlobalOptions(argc, argv)) {
-#ifdef COMPILING_ON_ANDROID
-		delete std::cout.rdbuf(0);
-		delete std::cerr.rdbuf(0);
-#endif
-		return EXIT_SUCCESS;
-	}
-
-	// ConversionInfo instance to hold parameters
-	ConversionInfo ci;
-
-	// get path/name of this app
-#ifdef __APPLE__
-	char pathBuf[PROC_PIDPATHINFO_MAXSIZE];
-	pid_t pid = getpid();
-	if (proc_pidpath(pid, pathBuf, sizeof(pathBuf)) == 0) {
-		ci.appName.assign(pathBuf);
-	}
-#else
-	ci.appName = argv[0];
-#endif
-
-	ci.overSamplingFactor = 1;
-
-	// get conversion parameters
-	ci.fromCmdLineArgs(argc, argv);
-	if (ci.bBadParams) {
-#ifdef COMPILING_ON_ANDROID
-		delete std::cout.rdbuf(0);
-		delete std::cerr.rdbuf(0);
-#endif
-		return EXIT_FAILURE;
-	}
-
-	// query build version AND cpu
-	if (!showBuildVersion()) {
-#ifdef COMPILING_ON_ANDROID
-		delete std::cout.rdbuf(0);
-		delete std::cerr.rdbuf(0);
-#endif
-		return EXIT_FAILURE; // can't continue (CPU / build mismatch)
-	}
-
-	// echo filenames to user
-	std::cout << "Input file: " << ci.inputFilename << std::endl;
-	std::cout << "Output file: " << ci.outputFilename << std::endl;
-
-	if (ci.disableClippingProtection) {
-		std::cout << "clipping protection disabled " << std::endl;
-	}
-
-	// Isolate the file extensions
-	std::string inFileExt;
-	std::string outFileExt;
-	if (ci.inputFilename.find_last_of('.') != std::string::npos)
-		inFileExt = ci.inputFilename.substr(ci.inputFilename.find_last_of('.') + 1);
-	if (ci.outputFilename.find_last_of('.') != std::string::npos)
-		outFileExt = ci.outputFilename.substr(ci.outputFilename.find_last_of('.') + 1);
-
-	// detect dsf or dff format
-	ci.dsfInput = (inFileExt == "dsf");
-	ci.dffInput = (inFileExt == "dff");
-
-	// detect csv output
-	ci.csvOutput = (outFileExt == "csv");
-
-	if (ci.csvOutput) {
-		std::cout << "Outputting to csv format" << std::endl;
-	}
-	else {
-		if (!ci.outBitFormat.empty()) {  // new output bit format requested
-			ci.outputFormat = determineOutputFormat(outFileExt, ci.outBitFormat);
-			if (ci.outputFormat) {
-				std::cout << "Changing output bit format to " << ci.outBitFormat << std::endl;
-			}
-			else { // user-supplied bit format not valid; try choosing appropriate format
-				determineBestBitFormat(ci.outBitFormat, ci.inputFilename, ci.outputFilename);
-				ci.outputFormat = determineOutputFormat(outFileExt, ci.outBitFormat);
-				if (ci.outputFormat) {
-					std::cout << "Changing output bit format to " << ci.outBitFormat << std::endl;
-				}
-				else {
-					std::cout << "Warning: NOT Changing output file bit format !" << std::endl;
-					ci.outputFormat = 0; // back where it started
-				}
-			}
-		}
-
-		if (outFileExt != inFileExt)
-		{ // file extensions differ, determine new output format:
-
-			if (ci.outBitFormat.empty()) { // user changed file extension only. Attempt to choose appropriate output sub format:
-				std::cout << "Output Bit Format not specified" << std::endl;
-				determineBestBitFormat(ci.outBitFormat, ci.inputFilename, ci.outputFilename);
-			}
-			ci.outputFormat = determineOutputFormat(outFileExt, ci.outBitFormat);
-			if (ci.outputFormat)
-				std::cout << "Changing output file format to " << outFileExt << std::endl;
-			else { // cannot determine subformat of output file
-				std::cout << "Warning: NOT Changing output file format ! (extension different, but format will remain the same)" << std::endl;
-			}
-		}
-	}
-	try {
-
-		if (ci.bUseDoublePrecision) {
-
-#ifdef USE_QUADMATH
-			std::cout << "Using quadruple-precision for calculations.\n";
-#else
-			std::cout << "Using double precision for calculations." << std::endl;
-#endif
-			if (ci.dsfInput) {
-				ci.bEnablePeakDetection = false;
-				return convert<DsfFile, double>(ci) ? EXIT_SUCCESS : EXIT_FAILURE;
-			}
-			else if (ci.dffInput) {
-				ci.bEnablePeakDetection = false;
-				return convert<DffFile, double>(ci) ? EXIT_SUCCESS : EXIT_FAILURE;
-			}
-			else {
-				ci.bEnablePeakDetection = true;
-				return convert<SndfileHandle, double>(ci) ? EXIT_SUCCESS : EXIT_FAILURE;
-			}
-		}
-
-		else {
-
-#ifdef USE_QUADMATH
-			std::cout << "Using quadruple-precision for calculations.\n";
-#endif
-			if (ci.dsfInput) {
-				ci.bEnablePeakDetection = false;
-				return convert<DsfFile, float>(ci) ? EXIT_SUCCESS : EXIT_FAILURE;
-			}
-			else if (ci.dffInput) {
-				ci.bEnablePeakDetection = false;
-				return convert<DffFile, float>(ci) ? EXIT_SUCCESS : EXIT_FAILURE;
-			}
-			else {
-				ci.bEnablePeakDetection = true;
-				return convert<SndfileHandle, float>(ci) ? EXIT_SUCCESS : EXIT_FAILURE;
-			}
-		}
-
-	} //ends try block
-
-	catch (const std::exception& e) {
-		std::cerr << "fatal error: " << e.what();
-#ifdef COMPILING_ON_ANDROID
-		delete std::cout.rdbuf(0);
-		delete std::cerr.rdbuf(0);
-#endif
-		return EXIT_FAILURE;
-	}
-}
+namespace ReSampler {
 
 // parseGlobalOptions() - result indicates whether to terminate.
 bool parseGlobalOptions(int argc, char * argv[]) {
@@ -322,12 +101,13 @@ bool parseGlobalOptions(int argc, char * argv[]) {
 // 2. use the default subformat for outfile.
 // store best bit format as a string in BitFormat
 
-bool determineBestBitFormat(std::string& BitFormat, const std::string& inFilename, const std::string& outFilename)
+bool determineBestBitFormat(std::string& bitFormat, const ConversionInfo& ci)
 {
 	// get infile's extension from filename:
 	std::string inFileExt;
-	if (inFilename.find_last_of('.') != std::string::npos)
-		inFileExt = inFilename.substr(inFilename.find_last_of('.') + 1);
+	if (ci.inputFilename.find_last_of('.') != std::string::npos) {
+		inFileExt = ci.inputFilename.substr(ci.inputFilename.find_last_of('.') + 1);
+	}
 
 	bool dsfInput = false;
 	bool dffInput = false;
@@ -343,19 +123,27 @@ bool determineBestBitFormat(std::string& BitFormat, const std::string& inFilenam
 
 	else { // libsndfile-openable file
 
-		// Inspect input file for format:
-		SndfileHandle infile(inFilename, SFM_READ);
-		inFileFormat = infile.format();
+		if (ci.bRawInput)
+		{
+			inFileFormat = SF_FORMAT_RAW | subFormats.at(ci.rawInputBitFormat);
+		}
+		else
+		{
+			// Inspect input file for format:
+			SndfileHandle infile(ci.inputFilename, SFM_READ);
+			inFileFormat = infile.format();
 
-		if (int e = infile.error()) {
-			std::cout << "Couldn't Open Input File (" << sf_error_number(e) << ")" << std::endl;
-			return false;
+			if (int e = infile.error())
+			{
+				std::cout << "Couldn't Open Input File (" << sf_error_number(e) << ")" << std::endl;
+				return false;
+			}
 		}
 
 		// get BitFormat of inFile as a string:
 		for (auto& subformat : subFormats) {
 			if (subformat.second == (inFileFormat & SF_FORMAT_SUBMASK)) {
-				BitFormat = subformat.first;
+				bitFormat = subformat.first;
 				break;
 			}
 		}
@@ -370,19 +158,20 @@ bool determineBestBitFormat(std::string& BitFormat, const std::string& inFilenam
 
 	// get outfile's extension:
 	std::string outFileExt;
-	if (outFilename.find_last_of('.') != std::string::npos)
-		outFileExt = outFilename.substr(outFilename.find_last_of('.') + 1);
+	if (ci.outputFilename.find_last_of('.') != std::string::npos)
+		outFileExt = ci.outputFilename.substr(ci.outputFilename.find_last_of('.') + 1);
 
 	// when the input file is dsf/dff, use default output subformat:
 	if (dsfInput || dffInput) { // choose default output subformat for chosen output file format
-		BitFormat = defaultSubFormats.find(outFileExt)->second;
-		std::cout << "defaulting to " << BitFormat << std::endl;
+		bitFormat = defaultSubFormats.find(outFileExt)->second;
+		std::cout << "defaulting to " << bitFormat << std::endl;
 		return true;
 	}
 
 	// get total number of major formats:
 	SF_FORMAT_INFO formatinfo;
-	int format, major_count;
+	int format;
+	int major_count;
 	memset(&formatinfo, 0, sizeof(formatinfo));
 	sf_command(nullptr, SFC_GET_FORMAT_MAJOR_COUNT, &major_count, sizeof(int));
 
@@ -404,19 +193,20 @@ bool determineBestBitFormat(std::string& BitFormat, const std::string& inFilenam
 			if (sf_format_check(&sfinfo)) { // Match: infile's subformat is valid for outfile's format
 				break;
 			}
-			else { // infile's subformat is not valid for outfile's format; use outfile's default subformat
-				std::cout << "Output file format " << outFileExt << " and subformat " << BitFormat << " combination not valid ... ";
-				BitFormat.clear();
-				BitFormat = defaultSubFormats.find(outFileExt)->second;
-				std::cout << "defaulting to " << BitFormat << std::endl;
-				break;
-			}
+
+			// infile's subformat is not valid for outfile's format; use outfile's default subformat
+			std::cout << "Output file format " << outFileExt << " and subformat " << bitFormat << " combination not valid ... ";
+			bitFormat.clear();
+			bitFormat = defaultSubFormats.find(outFileExt)->second;
+			std::cout << "defaulting to " << bitFormat << std::endl;
+			break;
+			
 		}
 	}
 	return true;
 }
 
-// determineOutputFormat() : returns an integer representing the output format, which libsndfile understands:
+// determineOutputFormat() : returns an integer representing a libsndfile output format:
 int determineOutputFormat(const std::string& outFileExt, const std::string& bitFormat)
 {
 	SF_FORMAT_INFO info;
@@ -439,10 +229,11 @@ int determineOutputFormat(const std::string& outFileExt, const std::string& bitF
 	if (bFileExtFound) {
 		// Check if subformat is recognized:
 		auto sf = subFormats.find(bitFormat);
-		if (sf != subFormats.end())
+		if (sf != subFormats.end()) {
 			format = info.format | sf->second;
-		else
+		} else {
 			std::cout << "Warning: bit format " << bitFormat << " not recognised !" << std::endl;
+		}
 	}
 
 	// Special cases:
@@ -498,7 +289,8 @@ void listSubFormats(const std::string& f)
 // convert()
 
 /* Note: type 'FileReader' MUST implement the following methods:
-constuctor(const std::string& fileName)
+constructor(const std::string& fileName)
+constructor(const std::string& fileName, int infileMode, int infileFormat, int infileChannels, int infileRate)
 bool error() // or int error()
 unsigned int channels()
 unsigned int samplerate()
@@ -519,14 +311,32 @@ bool convert(ConversionInfo& ci)
 	// filename for temp file;
 	std::string tmpFilename;
 
-	// Open input file:
-	FileReader infile(ci.inputFilename);
+	// Prepare input file opening parameters
+	int infileMode;
+	int infileFormat = 0; // leave these zero for normal operation. (Only set for RAW input)
+	int infileChannels = 0;
+	int infileRate = 0;
+	if(ci.dsfInput) {
+		infileMode = Dsf_read;
+	} else if(ci.dffInput) {
+		infileMode = Dff_read;
+	} else {
+		infileMode = SFM_READ;
+		if(ci.bRawInput) {
+			auto it = subFormats.find(ci.rawInputBitFormat);
+			int infileSubFormat = (it != subFormats.end()) ? it->second : SF_FORMAT_PCM_16;
+			infileFormat = SF_FORMAT_RAW | infileSubFormat;
+			infileChannels = ci.rawInputChannels;
+			infileRate = ci.rawInputSampleRate;
+			std::cout << "raw input" << std::endl;
+		}
+	}
+
+	// Open input file
+	FileReader infile(ci.inputFilename, infileMode, infileFormat, infileChannels, infileRate);
+
 	if (int e = infile.error()) {
-		std::cout << "Error: Couldn't Open Input File (" << sf_error_number(e) << ")" << std::endl; // to-do: make this more specific (?)
-#ifdef COMPILING_ON_ANDROID
-		delete std::cout.rdbuf(0);
-		delete std::cerr.rdbuf(0);
-#endif
+		std::cout << "Error: Couldn't Open Input File (" << sf_error_number(e) << ")" << std::endl;
 		return false;
 	}
 
@@ -621,8 +431,8 @@ bool convert(ConversionInfo& ci)
 
 	else { // no peak detection
 		peakInputSample = ci.bNormalize ?
-			0.5  /* ... a guess, since we haven't actually measured the peak (in the case of DSD, it is a good guess.) */ :
-			1.0;
+					0.5  /* ... a guess, since we haven't actually measured the peak (in the case of DSD, it is a good guess.) */ :
+					1.0;
 	}
 
 	if (ci.bNormalize) { // echo Normalization settings to user
@@ -644,7 +454,7 @@ bool convert(ConversionInfo& ci)
 	// echo conversion ratio to user:
 	FloatType resamplingFactor = static_cast<FloatType>(ci.outputSampleRate) / ci.inputSampleRate;
 	std::cout << "Conversion ratio: " << resamplingFactor
-		<< " (" << fraction.numerator << ":" << fraction.denominator << ")" << std::endl;
+			  << " (" << fraction.numerator << ":" << fraction.denominator << ")" << std::endl;
 
 	// if the outputFormat is zero, it means "No change to file format"
 	// if output file format has changed, use outputFormat. Otherwise, use same format as infile:
@@ -656,10 +466,9 @@ bool convert(ConversionInfo& ci)
 	}
 
 	// for wav files, determine whether to switch to rf64 mode:
-	if (((outputFileFormat & SF_FORMAT_TYPEMASK) == SF_FORMAT_WAV) ||
-		((outputFileFormat & SF_FORMAT_TYPEMASK) == SF_FORMAT_WAVEX)) {
+	if ((outputFileFormat & SF_FORMAT_TYPEMASK) == SF_FORMAT_WAV || (outputFileFormat & SF_FORMAT_TYPEMASK) == SF_FORMAT_WAVEX) {
 		if (ci.bRf64 ||
-			checkWarnOutputSize(inputSampleCount, getSfBytesPerSample(outputFileFormat), fraction.numerator, fraction.denominator)) {
+				checkWarnOutputSize(inputSampleCount, getSfBytesPerSample(outputFileFormat), fraction.numerator, fraction.denominator)) {
 			std::cout << "Switching to rf64 format !" << std::endl;
 			outputFileFormat &= ~SF_FORMAT_TYPEMASK; // clear file type
 			outputFileFormat |= SF_FORMAT_RF64;
@@ -710,6 +519,7 @@ bool convert(ConversionInfo& ci)
 
 	// make a vector of ditherers (one ditherer for each channel):
 	std::vector<Ditherer<FloatType>> ditherers;
+	ditherers.reserve(static_cast<size_t>(nChannels));
 	auto seed = static_cast<int>(ci.bUseSeed ? ci.seed : time(nullptr));
 
 	for (int n = 0; n < nChannels; n++) {
@@ -721,133 +531,19 @@ bool convert(ConversionInfo& ci)
 
 	// make a vector of Resamplers
 	std::vector<Converter<FloatType>> converters;
+	converters.reserve(static_cast<size_t>(nChannels));
 	for (int n = 0; n < nChannels; n++) {
-		// TODO: figure out why this hangs:
-		/*
-
-07/05 19:29:19: Launching app
-$ adb shell am start -n "media.player.pro/media.player.pro.MainActivity" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
-Client not ready yet..Waiting for process to come online
-Connected to process 31163 on device samsung-sm_g950f-ce091829e258a11b04
-Capturing and displaying logcat messages from application. This behavior can be disabled in the "Logcat output" section of the "Debugger" settings page.
-D/OboeAudio: openStream() OUTPUT -------- OboeVersion1.2.0 --------
-D/OboeAudio: AAudioLoader():  dlopen(libaaudio.so) returned 0xfab09f4ed61f48db
-	AudioStreamAAudio() call isSupported()
-D/AAudio: AAudioStreamBuilder_openStream() called ----------------------------------------
-D/AudioStreamBuilder: build() EXCLUSIVE sharing mode not supported. Use SHARED.
-D/: PlayerBase::PlayerBase()
-I/AAudioStream: open() rate   = 48000, channels    = 2, format   = 1, sharing = SH, dir = OUTPUT
-	open() device = 0, sessionId   = 0, perfMode = 12, callback: ON with frames = 0
-	open() usage  = 1, contentType = 2, inputPreset = 6
-D/AudioStreamTrack: open(), request notificationFrames = -8, frameCount = 0
-I/AudioTrack: AUDIO_OUTPUT_FLAG_FAST successful; frameCount 0 -> 1536
-W/AudioStreamTrack: open() flags changed from 0x00000104 to 0x00000004
-D/AAudio: AAudioStreamBuilder_openStream() returns 0 = AAUDIO_OK for (0x7e0b756300) ----------------
-D/OboeAudio: AudioStreamAAudio.open() app    format = 1
-	AudioStreamAAudio.open() sample rate   = 48000
-	AudioStreamAAudio.open() capacity      = 1536
-	AudioStreamAAudio.open: AAudioStream_Open() returned AAUDIO_OK, mAAudioStream = 0x7e0b756300
-W/OboeAudio: Oboe_Init: setting AudioStream buffer size
-	Oboe_Init: aquiring AudioStream format
-I/OboeAudio: Oboe_Init: AudioStream format is I16
-I/ReSampler: usage: ReSampler -i <inputfile> [-o <outputfile>] -r <samplerate> [-b <bitformat>] [-n [<normalization factor>]]
-	Additional options:
-
-	--help
-	--version
-	--compiler
-	--sndfile-version
-	--listsubformats <ext>
-	--showDitherProfiles
-	--gain [<amount>]
-	--doubleprecision
-	--dither [<amount>] [--autoblank] [--ns [<ID>]] [--flat-tpdf] [--seed [<num>]] [--quantize-bits <number of bits>]
-	--noDelayTrim
-	--minphase
-	--flacCompression <compressionlevel>
-	--vorbisQuality <quality>
-	--noClippingProtection
-	--relaxedLPF
-	--steepLPF
-	--lpf-cutoff <percentage> [--lpf-transition <percentage>]
-	--mt
-	--rf64
-	--noPeakChunk
-	--noMetadata
-	--singleStage
-	--multiStage
-	--maxStages
-	--showStages
-	--showTempFile
-	--noTempFile
-	2.0.7
-I/ReSampler: 2.0.7 64-bit version
-	Input file: /sdcard/ReSampler/00001313.wav
-	Output file: /sdcard/ReSampler/00001313_48000.wav
-	Changing output bit format to 16
-I/ReSampler: input bit format: 16
-	source file channels: 2
-	input sample rate: 44100
-	output sample rate: 48000
-I/ReSampler: Scanning input file for peaks ...Done
-	Peak input sample: 0.999969 (-0.000265 dBFS) at 0:0:1.259297
-	LPF transition frequency: 20045.45 Hz (90.91 %)
-	Conversion ratio: 1.088435 (160:147)
-I/ReSampler: loop start: 0
-	loop max: 2
-I/ReSampler: Stage: 1
-	inputRate: 44100
-	outputRate: 63000
-	ft: 20045.454545
-	stopFreq: 22050.000000
-	transition width: 3.181818 %
-	guarantee: 22050.000000
-	Generated Filter Size: 3072
-	Output Buffer Size: 46812
-I/ReSampler: loop end: 0
-	loop max: 2
-	loop start: 1
-	loop max: 2
-I/ReSampler: Stage: 2
-	inputRate: 63000
-	outputRate: 48000
-	ft: 20045.454545
-	stopFreq: 25950.000000
-	transition width: 9.090909 %
-	guarantee: 25950.000000
-	Generated Filter Size: 2560
-	Output Buffer Size: 35666
-	loop end: 1
-	loop max: 2
-	Command lines to do this conversion in discreet steps:
-	 -i /sdcard/ReSampler/00001313.wav -o /sdcard/ReSampler/00001313_48000-stage1.wav -r 63000 --lpf-cutoff 96.818182 --lpf-transition 3.181818 --maxStages 1
-	 -i /sdcard/ReSampler/00001313_48000-stage1.wav -o /sdcard/ReSampler/00001313_48000.wav -r 48000 --lpf-cutoff 90.909091 --lpf-transition 9.090909 --maxStages 1
-	loop start: 0
-	loop max: 2
-I/ReSampler: Stage: 1
-	inputRate: 44100
-	outputRate: 63000
-	ft: 20045.454545
-	stopFreq: 22050.000000
-	transition width: 3.181818 %
-	guarantee: 22050.000000
-	Generated Filter Size: 18446744073709548544
-	Output Buffer Size: 46812
-I/ReSampler: loop end: 0
-	loop max: 2
-
-		 */
 		converters.emplace_back(ci);
 	}
 
 	// Calculate initial gain:
-	FloatType gain = ci.gain * converters[0].getGain() *
-		(ci.bNormalize ? fraction.numerator * (ci.limit / peakInputSample) : fraction.numerator * ci.limit);
+	FloatType gain = static_cast<FloatType>(ci.gain) * static_cast<FloatType>(converters[0].getGain()) *
+			static_cast<FloatType>(ci.bNormalize ? fraction.numerator * (ci.limit / static_cast<double>(peakInputSample)) : fraction.numerator * ci.limit);
 
 	// todo: more testing with very low bit depths (eg 4 bits)
 	if (ci.bDither) { // allow headroom for dithering:
 		FloatType ditherCompensation =
-			(pow(2, outputSignalBits - 1) - pow(2, ci.ditherAmount - 1)) / pow(2, outputSignalBits - 1); // eg 32767/32768 = 0.999969 (-0.00027 dB)
+				(pow(2, outputSignalBits - 1) - pow(2, ci.ditherAmount - 1)) / pow(2, outputSignalBits - 1); // eg 32767/32768 = 0.999969 (-0.00027 dB)
 		gain *= ditherCompensation;
 	}
 
@@ -923,10 +619,6 @@ I/ReSampler: loop end: 0
 
 				if (int e = outFile->error()) {
 					std::cout << "Error: Couldn't Open Output File (" << sf_error_number(e) << ")" << std::endl;
-#ifdef COMPILING_ON_ANDROID
-					delete std::cout.rdbuf(0);
-					delete std::cerr.rdbuf(0);
-#endif
 					return false;
 				}
 
@@ -962,10 +654,6 @@ I/ReSampler: loop end: 0
 
 			catch (std::exception& e) {
 				std::cout << "Error: Couldn't Open Output File " << e.what() << std::endl;
-#ifdef COMPILING_ON_ANDROID
-				delete std::cout.rdbuf(0);
-				delete std::cerr.rdbuf(0);
-#endif
 				return false;
 			}
 		}
@@ -985,7 +673,7 @@ I/ReSampler: loop end: 0
 
 		peakOutputSample = 0.0;
 		totalSamplesRead = 0;
-		sf_count_t incrementalProgressThreshold = inputSampleCount / 10;
+		sf_count_t incrementalProgressThreshold = (ci.progressUpdates > 0 ) ? inputSampleCount / ci.progressUpdates : inputSampleCount + 1;
 		sf_count_t nextProgressThreshold = incrementalProgressThreshold;
 
 		int outStartOffset = std::min(groupDelay * nChannels, static_cast<int>(outputBlockSize) - nChannels);
@@ -998,7 +686,7 @@ I/ReSampler: loop end: 0
 
 			// de-interleave into channel buffers
 			size_t i = 0;
-			for (size_t s = 0; s < samplesRead; s += nChannels) {
+			for (int s = 0; s < samplesRead; s += nChannels) {
 				for (int ch = 0; ch < nChannels; ++ch) {
 					inputChannelBuffers[ch][i] = inputBlock[s + ch];
 				}
@@ -1016,7 +704,7 @@ I/ReSampler: loop end: 0
 
 			for (int ch = 0; ch < nChannels; ++ch) { // run convert stage for each channel (concurrently)
 
-				auto kernel = [&, ch](int x = 0) {
+				auto kernel = [&, ch](int) {
 					FloatType* iBuf = inputChannelBuffers[ch].data();
 					FloatType* oBuf = outputChannelBuffers[ch].data();
 					size_t o = 0;
@@ -1030,13 +718,9 @@ I/ReSampler: loop end: 0
 						outputBlock[localOutputBlockIndex + ch] = outputSample; // interleave
 						localOutputBlockIndex += nChannels;
 					}
-					Result res;
+					Result res{};
 					res.outBlockindex = localOutputBlockIndex;
 					res.peak = localPeak;
-#ifdef COMPILING_ON_ANDROID
-					delete std::cout.rdbuf(0);
-					delete std::cerr.rdbuf(0);
-#endif
 					return res;
 				};
 
@@ -1044,7 +728,7 @@ I/ReSampler: loop end: 0
 					results[ch] = threadPool.push(kernel);
 				}
 				else {
-					Result res = kernel();
+					Result res = kernel(0);
 					peakOutputSample = std::max(peakOutputSample, res.peak);
 					outputBlockIndex = res.outBlockindex;
 				}
@@ -1075,7 +759,7 @@ I/ReSampler: loop end: 0
 			// conditionally send progress update:
 			if (totalSamplesRead > nextProgressThreshold) {
 				int progressPercentage = std::min(static_cast<int>(99), static_cast<int>(100 * totalSamplesRead / inputSampleCount));
-				std::cout << progressPercentage << "%\b\b\b" << std::flush;
+				OutputManager::callProgressFunc(progressPercentage);
 				nextProgressThreshold += incrementalProgressThreshold;
 			}
 
@@ -1132,7 +816,6 @@ I/ReSampler: loop end: 0
 				std::vector<FloatType> outBuf(inputBlockSize, 0);
 				peakOutputSample = 0.0;
 				totalSamplesRead = 0;
-				incrementalProgressThreshold = inputSampleCount / 10;
 				nextProgressThreshold = incrementalProgressThreshold;
 
 				tmpSndfileHandle->seek(0, SEEK_SET);
@@ -1146,10 +829,10 @@ I/ReSampler: loop end: 0
 
 					// de-interleave into channels, apply gain, add dither, and save to output buffer
 					size_t i = 0;
-					for (size_t s = 0; s < samplesRead; s += nChannels) {
+					for (int s = 0; s < samplesRead; s += nChannels) {
 						for (int ch = 0; ch < nChannels; ++ch) {
 							FloatType smpl = ci.bDither ? ditherers[ch].dither(gain * inputBlock[i]) :
-								gain * inputBlock[i];
+														  gain * inputBlock[i];
 							peakOutputSample = std::max(std::abs(smpl), peakOutputSample);
 							outBuf[i++] = smpl;
 						}
@@ -1166,8 +849,8 @@ I/ReSampler: loop end: 0
 					// conditionally send progress update:
 					if (totalSamplesRead > nextProgressThreshold) {
 						int progressPercentage = std::min(static_cast<int>(99),
-							static_cast<int>(100 * totalSamplesRead / inputSampleCount));
-						std::cout << progressPercentage << "%\b\b\b" << std::flush;
+														  static_cast<int>(100 * totalSamplesRead / inputSampleCount));
+						OutputManager::callProgressFunc(progressPercentage);
 						nextProgressThreshold += incrementalProgressThreshold;
 					}
 
@@ -1199,10 +882,6 @@ I/ReSampler: loop end: 0
 	std::remove(tmpFilename.c_str()); // actually remove the temp file from disk
 #endif
 
-#ifdef COMPILING_ON_ANDROID
-	delete std::cout.rdbuf(0);
-	delete std::cerr.rdbuf(0);
-#endif
 	return true;
 } // ends convert()
 
@@ -1232,7 +911,7 @@ SndfileHandle* getTempFile(int inputFileFormat, int nChannels, const ConversionI
 	DWORD pathLen;
 
 	if (!ci.tmpDir.empty()) {
-		pathLen = ci.tmpDir.length();
+		pathLen = static_cast<DWORD>(ci.tmpDir.length());
 		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> widener;
 		wcscpy_s(_tmpPathname, MAX_PATH, widener.from_bytes(ci.tmpDir).c_str());
 	}
@@ -1295,7 +974,7 @@ SndfileHandle* getTempFile(int inputFileFormat, int nChannels, const ConversionI
 		// disable floating-point normalisation (important - we want to record/recover floating point values exactly)
 		if (sizeof(FloatType) == 8) {
 			tmpSndfileHandle->command(SFC_SET_NORM_DOUBLE, NULL,
-				SF_FALSE); // http://www.mega-nerd.com/libsndfile/command.html#SFC_SET_NORM_DOUBLE
+									  SF_FALSE); // http://www.mega-nerd.com/libsndfile/command.html#SFC_SET_NORM_DOUBLE
 		}
 		else {
 			tmpSndfileHandle->command(SFC_SET_NORM_FLOAT, NULL, SF_FALSE);
@@ -1357,8 +1036,8 @@ bool setMetaData(const MetaData& metadata, SndfileHandle& outfile) {
 	if (!metadata.genre.empty()) outfile.setString(SF_STR_GENRE, metadata.genre.c_str());
 
 	if (((outfile.format() &  SF_FORMAT_TYPEMASK) == SF_FORMAT_WAV) ||
-		((outfile.format() &  SF_FORMAT_TYPEMASK) == SF_FORMAT_WAVEX) ||
-		((outfile.format() &  SF_FORMAT_TYPEMASK) == SF_FORMAT_RF64)) { /* some sort of wav file */
+			((outfile.format() &  SF_FORMAT_TYPEMASK) == SF_FORMAT_WAVEX) ||
+			((outfile.format() &  SF_FORMAT_TYPEMASK) == SF_FORMAT_RF64)) { /* some sort of wav file */
 
 		// attempt to write bext / cart chunks:
 		if (metadata.has_bext_fields) {
@@ -1367,9 +1046,9 @@ bool setMetaData(const MetaData& metadata, SndfileHandle& outfile) {
 
 		if (metadata.has_cart_chunk) {
 			outfile.command(SFC_SET_CART_INFO,
-				(void*)&metadata.cartInfo,
-				sizeof(metadata.cartInfo) - MAX_CART_TAG_TEXT_SIZE + metadata.cartInfo.tag_text_size // (size of cartInfo WITHOUT tag text) + (actual size of tag text)
-			);
+							(void*)&metadata.cartInfo,
+							sizeof(metadata.cartInfo) - MAX_CART_TAG_TEXT_SIZE + metadata.cartInfo.tag_text_size // (size of cartInfo WITHOUT tag text) + (actual size of tag text)
+							);
 		}
 	}
 
@@ -1378,7 +1057,6 @@ bool setMetaData(const MetaData& metadata, SndfileHandle& outfile) {
 
 bool testSetMetaData(SndfileHandle& outfile) {
 	MetaData m;
-	memset(&m, 0, sizeof(m));
 	m.title.assign("test title");
 	m.copyright.assign("test copyright");
 	m.software.assign("test software");
@@ -1390,18 +1068,6 @@ bool testSetMetaData(SndfileHandle& outfile) {
 	m.trackNumber.assign("test track number");
 	m.genre.assign("test genre");
 	return setMetaData(m, outfile);
-}
-
-int getDefaultNoiseShape(int sampleRate) {
-	if (sampleRate <= 44100) {
-		return DitherProfileID::standard;
-	}
-	else if (sampleRate <= 48000) {
-		return DitherProfileID::standard;
-	}
-	else {
-		return DitherProfileID::flat_f;
-	}
 }
 
 void showDitherProfiles() {
@@ -1466,26 +1132,32 @@ void printSamplePosAsTime(sf_count_t samplePos, unsigned int sampleRate) {
 }
 
 bool testSetMetaData(DsfFile& outfile) {
+	(void)outfile; // unused
 	// stub - to-do
 	return true;
 }
 
 bool testSetMetaData(DffFile& outfile) {
+	(void)outfile; // unused
 	// stub - to-do
 	return true;
 }
 
 bool getMetaData(MetaData& metadata, const DffFile& f) {
+	(void)metadata; // unused
+	(void)f; // unused
 	// stub - to-do
 	return true;
 }
 
 bool getMetaData(MetaData& metadata, const DsfFile& f) {
+	(void)metadata; // unused
+	(void)f; // unused
 	// stub - to-do
 	return true;
 }
 
-#ifndef FIR_QUAD_PRECISION
+#ifndef USE_QUADMATH
 
 void generateExpSweep(const std::string& filename, int sampleRate, int format, double duration, int nOctaves, double amplitude_dB) {
 	int pow2P = 1 << nOctaves;
@@ -1564,7 +1236,7 @@ bool checkAVX() {
 		__cpuid(cpuInfo, 1);
 		if (cpuInfo[2] & (1 << 28)) {
 			bAVXok = true; // Note: this test only confirms CPU AVX capability, and does not check OS capability.
-						   // to-do: check for AVX2 ...
+			// to-do: check for AVX2 ...
 		}
 	}
 	if (bAVXok) {
@@ -1581,7 +1253,7 @@ bool checkAVX() {
 
 bool showBuildVersion() {
 	std::cout << strVersion << " ";
-#if defined(_M_X64) || defined(__x86_64__) || defined(COMPILING_ON_ANDROID64)
+#if defined(_M_X64) || defined(__x86_64__) || defined(__aarch64__)
 	std::cout << "64-bit version";
 #ifdef USE_AVX
 	std::cout << " AVX build ... ";
@@ -1609,16 +1281,16 @@ void showCompiler() {
 	// https://sourceforge.net/p/predef/wiki/Compilers/
 #if defined (__clang__)
 	std::cout << "Clang " << __clang_major__ << "."
-		<< __clang_minor__ << "."
-		<< __clang_patchlevel__ << std::endl;
+			  << __clang_minor__ << "."
+			  << __clang_patchlevel__ << std::endl;
 #elif defined (__MINGW64__)
 	std::cout << "minGW-w64" << std::endl;
 #elif defined (__MINGW32__)
 	std::cout << "minGW" << std::endl;
 #elif defined (__GNUC__)
 	std::cout << "gcc " << __GNUC__ << "."
-		<< __GNUC_MINOR__ << "."
-		<< __GNUC_PATCHLEVEL__ << std::endl;
+			  << __GNUC_MINOR__ << "."
+			  << __GNUC_PATCHLEVEL__ << std::endl;
 #elif defined (_MSC_VER)
 	std::cout << "Visual C++ " << _MSC_FULL_VER << std::endl;
 #elif defined (__INTEL_COMPILER)
@@ -1626,5 +1298,190 @@ void showCompiler() {
 #else
 	std::cout << "unknown" << std::endl;
 #endif
-
 }
+
+
+int runCommand(int argc, char** argv) {
+
+	// test for global options
+	if (parseGlobalOptions(argc, argv)) {
+		return EXIT_SUCCESS;
+	}
+
+	// ConversionInfo instance to hold parameters
+	ConversionInfo ci;
+
+	// get path/name of this app
+#ifdef __APPLE__
+	char pathBuf[PROC_PIDPATHINFO_MAXSIZE];
+	pid_t pid = getpid();
+	if (proc_pidpath(pid, pathBuf, sizeof(pathBuf)) == 0) {
+		ci.appName.assign(pathBuf);
+	}
+#else
+	ci.appName = argv[0];
+#endif
+
+	ci.overSamplingFactor = 1;
+
+	// get conversion parameters
+	ci.fromCmdLineArgs(argc, argv);
+	if (ci.bBadParams) {
+		std::cout << strUsage << std::endl;
+		return EXIT_FAILURE;
+	}
+
+	// query build version AND cpu
+	if (!showBuildVersion()) {
+		return EXIT_FAILURE; // can't continue (CPU / build mismatch)
+	}
+
+	// echo filenames to user
+	std::cout << "Input file: " << ci.inputFilename << std::endl;
+	std::cout << "Output file: " << ci.outputFilename << std::endl;
+
+	if (ci.disableClippingProtection) {
+		std::cout << "clipping protection disabled " << std::endl;
+	}
+
+	// Isolate the file extensions
+	std::string inFileExt;
+	std::string outFileExt;
+
+	if (ci.inputFilename.find_last_of('.') != std::string::npos) {
+		inFileExt = ci.inputFilename.substr(ci.inputFilename.find_last_of('.') + 1);
+	}
+
+	if (ci.outputFilename.find_last_of('.') != std::string::npos) {
+		outFileExt = ci.outputFilename.substr(ci.outputFilename.find_last_of('.') + 1);
+	}
+
+	// detect dsf or dff format
+	ci.dsfInput = (inFileExt == "dsf");
+	ci.dffInput = (inFileExt == "dff");
+
+	// detect csv output
+	ci.csvOutput = (outFileExt == "csv");
+
+	if (ci.csvOutput) {
+		std::cout << "Outputting to csv format" << std::endl;
+	}
+
+	else {
+		if (!ci.outBitFormat.empty()) {  // new output bit format requested
+			ci.outputFormat = determineOutputFormat(outFileExt, ci.outBitFormat);
+			if (ci.outputFormat) {
+				std::cout << "Changing output bit format to " << ci.outBitFormat << std::endl;
+			}
+			else { // user-supplied bit format not valid; try choosing appropriate format
+				std::string outBitFormat;
+				determineBestBitFormat(outBitFormat, ci);
+				ci.outputFormat = determineOutputFormat(outFileExt, outBitFormat);
+				if (ci.outputFormat) {
+					ci.outBitFormat = outBitFormat;
+					std::cout << "Changing output bit format to " << ci.outBitFormat << std::endl;
+				}
+				else {
+					std::cout << "Warning: NOT Changing output file bit format !" << std::endl;
+					ci.outputFormat = 0; // back where it started
+				}
+			}
+		}
+
+		if (outFileExt != inFileExt) { // file extensions differ, determine new output format:
+
+			std::string outBitFormat{ci.outBitFormat};
+			if (ci.outBitFormat.empty()) { // user changed file extension only. Attempt to choose appropriate output sub format:
+				std::cout << "Output Bit Format not specified" << std::endl;
+				determineBestBitFormat(outBitFormat, ci);
+			}
+			ci.outputFormat = determineOutputFormat(outFileExt, outBitFormat);
+			if (ci.outputFormat) {
+				ci.outBitFormat = outBitFormat;
+				std::cout << "Changing output file format to " << outFileExt << std::endl;
+			} else { // cannot determine subformat of output file
+				std::cout << "Warning: NOT Changing output file format ! (extension different, but format will remain the same)" << std::endl;
+			}
+		}
+	}
+
+	try {
+
+		if (ci.bUseDoublePrecision) {
+
+#ifdef USE_QUADMATH
+			std::cout << "Using quadruple-precision for calculations.\n";
+#else
+			std::cout << "Using double precision for calculations." << std::endl;
+#endif
+
+			if (ci.dsfInput) {
+				ci.bEnablePeakDetection = false;
+				return convert<DsfFile, double>(ci) ? EXIT_SUCCESS : EXIT_FAILURE;
+			}
+
+			if (ci.dffInput) {
+				ci.bEnablePeakDetection = false;
+				return convert<DffFile, double>(ci) ? EXIT_SUCCESS : EXIT_FAILURE;
+			}
+			
+			ci.bEnablePeakDetection = true;
+			return convert<SndfileHandle, double>(ci) ? EXIT_SUCCESS : EXIT_FAILURE;
+			
+		}
+
+		else {
+
+#ifdef USE_QUADMATH
+			std::cout << "Using quadruple-precision for calculations.\n";
+#endif
+			if (ci.dsfInput) {
+				ci.bEnablePeakDetection = false;
+				return convert<DsfFile, float>(ci) ? EXIT_SUCCESS : EXIT_FAILURE;
+			}
+
+			if (ci.dffInput) {
+				ci.bEnablePeakDetection = false;
+				return convert<DffFile, float>(ci) ? EXIT_SUCCESS : EXIT_FAILURE;
+			}
+			
+			ci.bEnablePeakDetection = true;
+			return convert<SndfileHandle, float>(ci) ? EXIT_SUCCESS : EXIT_FAILURE;
+			
+		}
+
+	} //ends try block
+
+	catch (const std::exception& e) {
+		std::cerr << "fatal error: " << e.what();
+		return EXIT_FAILURE;
+	}
+}
+
+// explicit instantiations - generate all required flavors of convert()
+template bool convert<DffFile, float>(ConversionInfo&);
+template bool convert<DffFile, double>(ConversionInfo&);
+template bool convert<DsfFile, float>(ConversionInfo&);
+template bool convert<DsfFile, double>(ConversionInfo&);
+template bool convert<SndfileHandle, float>(ConversionInfo&);
+template bool convert<SndfileHandle, double>(ConversionInfo&);
+
+std::function<void(int)> OutputManager::progressFunc = [](int percentComplete) {
+	std::cout << percentComplete << "%\b\b\b" << std::flush;
+};
+
+std::function<void (int)> OutputManager::getProgressFunc()
+{
+	return progressFunc;
+}
+
+void OutputManager::setProgressFunc(const std::function<void (int)> &value)
+{
+	progressFunc = value;
+}
+
+void OutputManager::callProgressFunc(int percentComplete) {
+	return progressFunc(percentComplete);
+}
+
+} // namespace ReSampler

@@ -23,6 +23,8 @@
 // defines Fraction type, functions for obtaining gcd, simplified fractions, prime factors of integers,
 // functions for deriving conversion ratios for individual stages of multi-stage converter configurations
 
+namespace ReSampler {
+
 // single-stage policies
 static const bool singleStageOnDecimateOnly = false;
 static const bool singleStageOnInterpolateOnly = false;
@@ -33,7 +35,7 @@ struct Fraction {
 };
 
 // gcd() - greatest common divisor:
-int gcd(int a, int b) {
+inline int gcd(int a, int b) {
 	if (a<0) a = -a;
 	if (b<0) b = -b;
 	while (b != 0) {
@@ -48,7 +50,7 @@ int gcd(int a, int b) {
 // return a fraction representing the conversion factor
 // eg: input:96000, output:44100 => 147 / 320
 
-Fraction getFractionFromSamplerates(int inputRate, int outputRate) 
+inline Fraction getFractionFromSamplerates(int inputRate, int outputRate) 
 {
 	Fraction f;
 	f.numerator = (outputRate / gcd(inputRate, outputRate));		// L (eg 147)
@@ -58,7 +60,7 @@ Fraction getFractionFromSamplerates(int inputRate, int outputRate)
 
 // factorize(n) - returns a vector of prime factors of n
 
-std::vector<int> factorize(int n) {
+inline std::vector<int> factorize(int n) {
 	std::vector<int> factors;
 	int maxFactor = static_cast<int>(std::sqrt(n));
 
@@ -78,39 +80,39 @@ std::vector<int> factorize(int n) {
 // getnFactors() - // given a vector of prime factors of some integer x
 // return a set of possible factorizations of x, each with <= maxFactors factors
 
-std::set<std::vector<int>> getnFactors(const std::vector<int> &primes, int maxFactors) {
+inline std::set<std::vector<int>> getnFactors(const std::vector<int> &primes, int maxFactors) {
 
-    std::set<std::vector<int>> solutions; // the retval
-    std::vector<int> currentFactors(static_cast<size_t>(maxFactors), 1);
+	std::set<std::vector<int>> solutions; // the retval
+	std::vector<int> currentFactors(static_cast<size_t>(maxFactors), 1);
 
-    std::function<void(std::vector<int>, int)> recursiveFunc =
-    [&solutions, &currentFactors, &recursiveFunc](std::vector<int> primeFactors, int numFactors) {
-        if(numFactors == 1) { // leaf node
-            currentFactors[0] = std::accumulate(primeFactors.begin(), primeFactors.end(), 1, std::multiplies<int>());
-            std::vector<int> newFactors = currentFactors;
-            std::sort(newFactors.begin(), newFactors.end() , std::less<int>());
-            solutions.insert(newFactors);
-            return;
-        }
+	std::function<void(std::vector<int>, int)> recursiveFunc =
+	[&solutions, &currentFactors, &recursiveFunc](std::vector<int> primeFactors, int numFactors) {
+		if(numFactors == 1) { // leaf node
+			currentFactors[0] = std::accumulate(primeFactors.begin(), primeFactors.end(), 1, std::multiplies<int>());
+			std::vector<int> newFactors = currentFactors;
+			std::sort(newFactors.begin(), newFactors.end() , std::less<int>());
+			solutions.insert(newFactors);
+			return;
+		}
 
-        int maxFirstItems = static_cast<int>(primeFactors.size() - (numFactors - 1));
-        for(int j = 1; j <= maxFirstItems; j++) {
-            currentFactors[numFactors-1] = std::accumulate(primeFactors.begin(), primeFactors.begin() + j, 1, std::multiplies<int>());
-            std::vector<int> remainingItems(primeFactors.begin() + j, primeFactors.end());
-            recursiveFunc(remainingItems, numFactors - 1);
-        }
-        return;
-    }; // ends recursiveFunc
+		int maxFirstItems = static_cast<int>(primeFactors.size()) - numFactors - 1;
+		for(int j = 1; j <= maxFirstItems; j++) {
+			currentFactors[numFactors-1] = std::accumulate(primeFactors.begin(), primeFactors.begin() + j, 1, std::multiplies<int>());
+			std::vector<int> remainingItems(primeFactors.begin() + j, primeFactors.end());
+			recursiveFunc(remainingItems, numFactors - 1);
+		}
+		return;
+	}; // ends recursiveFunc
 
-    recursiveFunc(std::move(primes), maxFactors);
+	recursiveFunc(std::move(primes), maxFactors);
 
-    return solutions;
+	return solutions;
 }
 
 // getnFactors() - given an integer, x,
 // return a set of possible factorizations, each with <= maxFactors factors,
 
-std::set<std::vector<int>> getnFactors(int x, int maxFactors) {
+inline std::set<std::vector<int>> getnFactors(int x, int maxFactors) {
 	std::vector<int> primes = factorize(x);
 	return getnFactors(primes, maxFactors);
 }
@@ -119,17 +121,17 @@ std::set<std::vector<int>> getnFactors(int x, int maxFactors) {
 // each consisting of a vector of fractions representing individual conversion stages.
 // may also return an empty result if suitable solution is not possible with given value of maxStages
 
-std::vector<std::vector<Fraction>> getConversionStageCandidates(Fraction f, int maxStages) {
+inline std::vector<std::vector<Fraction>> getConversionStageCandidates(Fraction f, int maxStages) {
 	auto numeratorPrimes = factorize(f.numerator);
 	auto denominatorPrimes = factorize(f.denominator);
 	int maxPossibleStages = static_cast<int>(std::max(numeratorPrimes.size(), denominatorPrimes.size())); // determines just how many stages can be formed
 	int numStages = std::max(1, std::min(maxStages, maxPossibleStages)); // determines exactly how many stages we will have 
 	
-	while (numeratorPrimes.size() < numStages) { // pad with 1s at front
+	while (numeratorPrimes.size() < static_cast<size_t>(numStages)) { // pad with 1s at front
 		numeratorPrimes.insert(numeratorPrimes.begin(), numStages - numeratorPrimes.size(), 1);
 	}
 
-	while (denominatorPrimes.size() < numStages) { // pad with 1s at front
+	while (denominatorPrimes.size() < static_cast<size_t>(numStages)) { // pad with 1s at front
 		denominatorPrimes.insert(denominatorPrimes.begin(), numStages - denominatorPrimes.size(), 1);
 	}
 
@@ -166,7 +168,7 @@ std::vector<std::vector<Fraction>> getConversionStageCandidates(Fraction f, int 
 // getBestConversionStagesCandidate() : given fraction and maximum number of stages,
 // attempt to algorithmically find best configuration of converter stages.
 
-std::vector<Fraction> getBestConversionStagesCandidate(Fraction f, int maxStages) {
+inline std::vector<Fraction> getBestConversionStagesCandidate(Fraction f, int maxStages) {
 
 	std::vector<Fraction> fractions; // return value
 	if (maxStages <= 1) {
@@ -191,7 +193,7 @@ std::vector<Fraction> getBestConversionStagesCandidate(Fraction f, int maxStages
 // getConversionStages() : get converter stages from hardcoded presets,
 // failing that, find converter configuration algorithmically.
 
-std::vector<Fraction> getConversionStages(Fraction f, int maxStages) {
+inline std::vector<Fraction> getConversionStages(Fraction f, int maxStages) {
 
 	// apply single-stage policies:
 	if (maxStages <= 1) {
@@ -235,7 +237,7 @@ std::vector<Fraction> getConversionStages(Fraction f, int maxStages) {
 }
 
 // utility functions:
-void dumpFractionList(std::vector<Fraction> fractions) {
+inline void dumpFractionList(std::vector<Fraction> fractions) {
 	for(auto fractionIt = fractions.begin(); fractionIt != fractions.end(); fractionIt++) {
 		std::cout << fractionIt->numerator << "/" << fractionIt->denominator;
 		if (fractionIt != std::prev(fractions.end())) {
@@ -244,7 +246,7 @@ void dumpFractionList(std::vector<Fraction> fractions) {
 	}
 }
 
-void dumpConversionStageCandidates(std::vector<std::vector<Fraction>> candidates) {
+inline void dumpConversionStageCandidates(std::vector<std::vector<Fraction>> candidates) {
 	for (std::vector<Fraction>& candidate : candidates) {
 		dumpFractionList(candidate);
 		std::cout << "\n";
@@ -252,7 +254,7 @@ void dumpConversionStageCandidates(std::vector<std::vector<Fraction>> candidates
 }
 
 // test functions:
-void testConverterStageSelection(int numStages, bool unique = true) {
+inline void testConverterStageSelection(int numStages, bool unique = true) {
 	std::vector<int> rates{8000, 11025, 16000, 22050, 32000, 37800, 44056, 44100, 47250, 48000, 50000, 50400, 88200, 96000, 176400, 192000, 352800, 384000, 2822400, 5644800};
 	struct Result {
 		Fraction fraction;
@@ -291,5 +293,7 @@ void testConverterStageSelection(int numStages, bool unique = true) {
 
 	std::cout << std::endl;
 }
+
+} // namespace ReSampler
 
 #endif // FRACTION_H
