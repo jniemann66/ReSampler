@@ -34,6 +34,7 @@ if(ANDROID)
         iqdemodulator.h
         mpxdecode.h
         effect.h
+        stereoimager.h
         )
 
     add_library(ReSampler SHARED ${SOURCE_FILES})
@@ -82,6 +83,7 @@ else()
         iqdemodulator.h
         mpxdecode.h
         effect.h
+        stereoimager.h
         )
 
     if (WIN32)

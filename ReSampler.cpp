@@ -739,6 +739,13 @@ bool convert(ConversionInfo& ci)
 
 		int outStartOffset = std::min(groupDelay * nChannels, static_cast<int>(outputBlockSize) - nChannels);
 
+		// experimental
+//		StereoImager<FloatType> stereoImager;
+//		stereoImager.setBufferSize(outputBlockSize);
+//		stereoImager.setChannelCount(nChannels);
+//		stereoImager.setStereoWidth(2.0);
+		// ---
+
 		do { // central conversion loop (the heart of the matter ...)
 
 			// Grab a block of interleaved samples from file:
@@ -803,7 +810,13 @@ bool convert(ConversionInfo& ci)
 			}
 
 			// write out to either temp file or outfile (with Group Delay Compensation):
-			FloatType* outputData = outputBlock.data() + outStartOffset;
+
+			// process with effect first:
+//			const FloatType* outputData = stereoImager.process(outputBlock) + outStartOffset;
+
+			// no effect processing:
+			const FloatType* outputData = outputBlock.data() + outStartOffset;
+
 			sf_count_t outputSampleCount = outputBlockIndex - outStartOffset;
 
 			if (ci.bTmpFile) {

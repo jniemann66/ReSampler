@@ -2,6 +2,7 @@
 #define EFFECT_H
 
 #include <vector>
+#include <memory>
 
 namespace ReSampler {
 
@@ -9,7 +10,7 @@ template <typename FloatType>
 class Effect
 {
 public:
-	virtual FloatType* process(const FloatType* inputBuffer, int sampleCount) = 0;
+	virtual const FloatType* process(const std::vector<FloatType>& inputBuffer) = 0;
 
 	// getters
 	int getChannelCount() const
@@ -19,7 +20,7 @@ public:
 
 	int getBufferSize() const
 	{
-		return outputBuffer.size();
+		return outputBufferSize;
 	}
 
 	// setters
@@ -30,17 +31,15 @@ public:
 
 	void setBufferSize(int value)
 	{
-		outputBuffer.resize(value, 0.0);
+		outputBufferSize = value;
+		outputBuffer.reset(new FloatType[outputBufferSize]);
 	}
 
-private:
-	std::vector<FloatType> outputBuffer;
+protected:
+	std::unique_ptr<FloatType> outputBuffer;
+	int outputBufferSize;
 	int channelCount;
 };
-
-
-
-
 
 } // namespace ReSampler
 
