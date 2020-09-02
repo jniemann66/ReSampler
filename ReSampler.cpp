@@ -815,7 +815,7 @@ bool convert(ConversionInfo& ci)
 			}
 
 
-			// process output
+			// process output (with Group Delay Compensation):
 			sf_count_t outputSampleCount = outputBlockIndex - outStartOffset;
 
 			// process effects chain first:
@@ -824,7 +824,7 @@ bool convert(ConversionInfo& ci)
 			// no effect processing:
 		//	const FloatType* outputData = outputBlock.data() + outStartOffset;
 
-			// write out to either temp file or outfile (with Group Delay Compensation):
+			// write out to either temp file or outfile
 			if (ci.bTmpFile) {
 				tmpSndfileHandle->write(outputData, outputSampleCount);
 			}
