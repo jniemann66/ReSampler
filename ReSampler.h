@@ -30,7 +30,6 @@
 #include "conversioninfo.h"
 #include "dsf.h"
 #include "dff.h"
-#include "stereoimager.h"
 
 #include <type_traits>
 #include <vector>

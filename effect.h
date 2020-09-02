@@ -10,7 +10,7 @@ template <typename FloatType>
 class Effect
 {
 public:
-	virtual const FloatType* process(const std::vector<FloatType>& inputBuffer) = 0;
+	virtual const FloatType* process(const FloatType* inputBuffer, int sampleCount) = 0;
 
 	// getters
 	int getChannelCount() const
@@ -36,6 +36,7 @@ public:
 	}
 
 protected:
+	// each effect owns an outputBuffer
 	std::unique_ptr<FloatType> outputBuffer;
 	int outputBufferSize;
 	int channelCount;

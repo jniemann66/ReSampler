@@ -34,6 +34,7 @@ if(ANDROID)
         iqdemodulator.h
         mpxdecode.h
         effect.h
+        effectchain.h
         stereoimager.h
         )
 
@@ -83,6 +84,7 @@ else()
         iqdemodulator.h
         mpxdecode.h
         effect.h
+        effectchain.h
         stereoimager.h
         )
 

@@ -9,11 +9,12 @@ template <typename FloatType>
 class StereoImager : public Effect<FloatType>
 {
 public:
-	const FloatType* process (const std::vector<FloatType>& inputBuffer) override {
+	virtual const FloatType* process(const FloatType* inputBuffer, int sampleCount)
+	{
 		FloatType* p = Effect<FloatType>::outputBuffer.get();
-		for(int i = 0; i < inputBuffer.size(); i += Effect<FloatType>::channelCount) {
-			double inL = inputBuffer.at(i);
-			double inR = inputBuffer.at(i + 1);
+		for(int i = 0; i < sampleCount; i += Effect<FloatType>::channelCount) {
+			double inL = inputBuffer[i];
+			double inR = inputBuffer[i + 1];
 			double mid = inL + inR;
 			double side = inL - inR;
 			p[i] = gain * (mid + stereoWidth * side);

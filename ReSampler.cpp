@@ -18,6 +18,8 @@
 #include "ditherer.h"
 #include "iqdemodulator.h"
 #include "mpxdecode.h"
+#include "stereoimager.h"
+#include "effectchain.h"
 
 #include <cstdio>
 #include <string>
@@ -740,10 +742,13 @@ bool convert(ConversionInfo& ci)
 		int outStartOffset = std::min(groupDelay * nChannels, static_cast<int>(outputBlockSize) - nChannels);
 
 		// experimental
-//		StereoImager<FloatType> stereoImager;
-//		stereoImager.setBufferSize(outputBlockSize);
-//		stereoImager.setChannelCount(nChannels);
-//		stereoImager.setStereoWidth(2.0);
+		EffectChain<FloatType> outputChain;
+		outputChain.setOutputBufferSize(outputBlockSize);
+		outputChain.setChannelCount(nChannels);
+
+		StereoImager<FloatType> stereoImager;
+		stereoImager.setStereoWidth(2.0);
+		outputChain.add(&stereoImager);
 		// ---
 
 		do { // central conversion loop (the heart of the matter ...)
@@ -809,16 +814,17 @@ bool convert(ConversionInfo& ci)
 				}
 			}
 
-			// write out to either temp file or outfile (with Group Delay Compensation):
 
-			// process with effect first:
-//			const FloatType* outputData = stereoImager.process(outputBlock) + outStartOffset;
-
-			// no effect processing:
-			const FloatType* outputData = outputBlock.data() + outStartOffset;
-
+			// process output
 			sf_count_t outputSampleCount = outputBlockIndex - outStartOffset;
 
+			// process effects chain first:
+			const FloatType* outputData = outputChain.process(outputBlock.data(), outputSampleCount) + outStartOffset;
+
+			// no effect processing:
+		//	const FloatType* outputData = outputBlock.data() + outStartOffset;
+
+			// write out to either temp file or outfile (with Group Delay Compensation):
 			if (ci.bTmpFile) {
 				tmpSndfileHandle->write(outputData, outputSampleCount);
 			}
