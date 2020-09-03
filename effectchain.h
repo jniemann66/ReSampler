@@ -26,6 +26,11 @@ public:
 		return lastBuffer;
 	}
 
+	bool empty() const
+	{
+		return effects.empty();
+	}
+
 	int getOutputBufferSize() const
 	{
 		return outputBufferSize;

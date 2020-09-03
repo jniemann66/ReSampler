@@ -741,14 +741,16 @@ bool convert(ConversionInfo& ci)
 
 		int outStartOffset = std::min(groupDelay * nChannels, static_cast<int>(outputBlockSize) - nChannels);
 
-		// experimental
+		// initialise output (post-conversion) processing
 		EffectChain<FloatType> outputChain;
 		outputChain.setOutputBufferSize(outputBlockSize);
 		outputChain.setChannelCount(nChannels);
 
-		StereoImager<FloatType> stereoImager;
-		stereoImager.setStereoWidth(2.0);
-		outputChain.add(&stereoImager);
+//		StereoImager<FloatType> stereoImager;
+//		stereoImager.setStereoWidth(2.0);
+//		outputChain.add(&stereoImager);
+
+		bool hasOutputFX = !outputChain.empty();
 		// ---
 
 		do { // central conversion loop (the heart of the matter ...)
@@ -814,15 +816,11 @@ bool convert(ConversionInfo& ci)
 				}
 			}
 
-
 			// process output (with Group Delay Compensation):
 			sf_count_t outputSampleCount = outputBlockIndex - outStartOffset;
-
-			// process effects chain first:
-			const FloatType* outputData = outputChain.process(outputBlock.data(), outputSampleCount) + outStartOffset;
-
-			// no effect processing:
-		//	const FloatType* outputData = outputBlock.data() + outStartOffset;
+			const FloatType* outputData = hasOutputFX ?
+						outputChain.process(outputBlock.data(), outputSampleCount) + outStartOffset :
+						outputBlock.data() + outStartOffset;
 
 			// write out to either temp file or outfile
 			if (ci.bTmpFile) {
