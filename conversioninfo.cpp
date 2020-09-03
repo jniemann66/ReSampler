@@ -207,6 +207,8 @@ bool ConversionInfo::fromCmdLineArgs(int argc, char** argv) {
 	appName.clear();
 	bRawInput = false;
 	bDemodulateIQ = false;
+	bAdjustStereoWidth = false;
+	stereoWidth = 1.0;
 
 	// get core parameters:
 	getCmdlineParam(argv, argv + argc, "-i", inputFilename);
@@ -271,6 +273,11 @@ bool ConversionInfo::fromCmdLineArgs(int argc, char** argv) {
             }
         }
     }
+
+	bAdjustStereoWidth = getCmdlineParam(argv, argv + argc, "--stereoWidth");
+	if(bAdjustStereoWidth) {
+		getCmdlineParam(argv, argv + argc, "--stereoWidth", stereoWidth);
+	}
 
 #if defined (_WIN32) || defined (_WIN64)
 	getCmdlineParam(argv, argv + argc, "--tempDir", tmpDir);

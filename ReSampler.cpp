@@ -746,9 +746,12 @@ bool convert(ConversionInfo& ci)
 		outputChain.setOutputBufferSize(outputBlockSize);
 		outputChain.setChannelCount(nChannels);
 
-//		StereoImager<FloatType> stereoImager;
-//		stereoImager.setStereoWidth(2.0);
-//		outputChain.add(&stereoImager);
+		StereoImager<FloatType> stereoImager;
+		if(ci.bAdjustStereoWidth && nChannels == 2) {
+			std::cout << "adjusting stereo width" << std::endl;
+			stereoImager.setStereoWidth(ci.stereoWidth);
+			outputChain.add(&stereoImager);
+		}
 
 		bool hasOutputFX = !outputChain.empty();
 		// ---
