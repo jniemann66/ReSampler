@@ -26,6 +26,7 @@ public:
 		return lastBuffer;
 	}
 
+	// getters
 	bool empty() const
 	{
 		return effects.empty();
@@ -35,15 +36,18 @@ public:
 	{
 		return outputBufferSize;
 	}
-	void setOutputBufferSize(int value)
-	{
-		outputBufferSize = value;
-	}
 
 	int getChannelCount() const
 	{
 		return channelCount;
 	}
+
+	// setters
+	void setOutputBufferSize(int value)
+	{
+		outputBufferSize = value;
+	}
+
 	void setChannelCount(int value)
 	{
 		channelCount = value;
