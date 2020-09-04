@@ -39,10 +39,6 @@ private:
 	FloatType stereoWidth{1.0};
 };
 
-
-
-
-
 } // namespace ReSampler
 
 #endif // STEREOIMAGER_H

@@ -55,14 +55,6 @@ private:
 	int channelCount;
 };
 
-
-
-
-
-
-
-
-
 } // namespace ReSampler
 
 #endif // EFFECTCHAIN_H
