@@ -2,6 +2,7 @@
 #define FADEEFFECT_H
 
 #include "effect.h"
+#include <cmath>
 
 namespace ReSampler {
 
@@ -23,6 +24,10 @@ public:
             double inR = inputBuffer[i + 1];
             (void)inL; // todo: do something
             (void)inR;
+            p[i] = inL * gain;
+            p[i + 1] = inR * gain;
+            gain *= gainChangeRate;
+            position++;
         }
         return p;
     }
@@ -37,11 +42,29 @@ public:
         fadeType = value;
     }
 
+    void setFadeIn(double seconds)
+    {
+        (void) seconds;
+        startPostion = 0;
+        stopPosition = seconds * Effect<FloatType>::sampleRate;
+        double initialDb = -100.0;
+        gain = pow(10, initialDb / 20.0);
+        gainChangeRate = -initialDb / seconds / Effect<FloatType>::sampleRate;
+    }
+
+    void setFadeOut(double seconds)
+    {
+        (void) seconds;
+    }
 private:
     FloatType gain{1.0};
+    FloatType gainChangeRate{1.0};
     int fadeType{0};
     int64_t position{0};
-    int64_t totalSamples{0};
+    int64_t totalFrames{0};
+    int startPostion{0};
+    int stopPosition{0};
+
 };
 
 }
