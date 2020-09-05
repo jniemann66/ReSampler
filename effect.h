@@ -35,11 +35,23 @@ public:
 		outputBuffer.reset(new FloatType[outputBufferSize]);
 	}
 
+    int getSampleRate() const
+    {
+        return sampleRate;
+    }
+
+    void setSampleRate(int value)
+    {
+        sampleRate = value;
+    }
+
 protected:
-	// each effect owns an outputBuffer
-	std::unique_ptr<FloatType> outputBuffer;
+    // each effect owns an outputBuffer
+    std::unique_ptr<FloatType> outputBuffer;
 	int outputBufferSize;
 	int channelCount;
+    int sampleRate;
+
 };
 
 } // namespace ReSampler

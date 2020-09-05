@@ -36,6 +36,7 @@ if(ANDROID)
         effect.h
         effectchain.h
         stereoimager.h
+        fadeeffect.h
         )
 
     add_library(ReSampler SHARED ${SOURCE_FILES})
@@ -86,6 +87,7 @@ else()
         effect.h
         effectchain.h
         stereoimager.h
+        fadeeffect.h
         )
 
     if (WIN32)
