@@ -279,6 +279,11 @@ bool ConversionInfo::fromCmdLineArgs(int argc, char** argv) {
 		getCmdlineParam(argv, argv + argc, "--stereoWidth", stereoWidth);
 	}
 
+	bFadeIn = getCmdlineParam(argv, argv + argc, "--fade-in");
+	if(bFadeIn) {
+		getCmdlineParam(argv, argv + argc, "--fade-in", fadeInTime);
+	}
+
 #if defined (_WIN32) || defined (_WIN64)
 	getCmdlineParam(argv, argv + argc, "--tempDir", tmpDir);
 #endif

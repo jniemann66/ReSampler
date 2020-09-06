@@ -94,6 +94,8 @@ struct ConversionInfo
     DeEmphasisType IQDeEmphasisType;
 	bool bAdjustStereoWidth;
 	double stereoWidth;
+	bool bFadeIn;
+	double fadeInTime;
 
 	// functions
 	bool fromCmdLineArgs(int argc, char **argv); // populate ConversionInfo from args

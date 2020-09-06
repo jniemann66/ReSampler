@@ -746,15 +746,21 @@ bool convert(ConversionInfo& ci)
 		EffectChain<FloatType> outputChain;
 		outputChain.setOutputBufferSize(outputBlockSize);
 		outputChain.setChannelCount(nChannels);
+		outputChain.setTakeOwnership(true);
 
-		StereoImager<FloatType> stereoImager;
 		if(ci.bAdjustStereoWidth && nChannels == 2) {
+			auto stereoImager = new StereoImager<FloatType>;
 			std::cout << "adjusting stereo width" << std::endl;
-			stereoImager.setStereoWidth(ci.stereoWidth);
-			outputChain.add(&stereoImager);
+			stereoImager->setStereoWidth(ci.stereoWidth);
+			outputChain.add(stereoImager);
 		}
 
-		//
+		if(ci.bFadeIn) {
+			auto fadeEffect = new FadeEffect<FloatType>;
+			fadeEffect->setSampleRate(ci.outputSampleRate);
+			fadeEffect->setFadeIn(ci.fadeInTime);
+			outputChain.add(fadeEffect);
+		}
 
 		bool hasOutputFX = !outputChain.empty();
 		// ---

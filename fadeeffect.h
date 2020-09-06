@@ -26,10 +26,9 @@ public:
 		}
 
         for(int i = 0; i < sampleCount; i += Effect<FloatType>::channelCount) {
-            double inL = inputBuffer[i];
-            double inR = inputBuffer[i + 1];
-            p[i] = inL * gain;
-            p[i + 1] = inR * gain;
+			for(int ch = 0; ch < Effect<FloatType>::channelCount; ch++) {
+				p[i + ch] = inputBuffer[i + ch] * gain;
+			}
 
 			if(fadeType & FadeTypeFadeIn) {
 				if(gain < 1.0) {
@@ -64,27 +63,43 @@ public:
 
     void setFadeIn(double seconds)
     {
-		constexpr double initialDb = -100.0;
+		constexpr double initialDb = -80.0;
         gain = pow(10, initialDb / 20.0);
 		gainIncreaseRate = pow(10, -initialDb / seconds / Effect<FloatType>::sampleRate / 20);
+		fadeType |= FadeTypeFadeIn;
     }
 
     void setFadeOut(double seconds)
     {
-		constexpr double finalDb = -100.0;
+		constexpr double finalDb = -80.0;
 		gainDecreaseRate = pow(10, finalDb / seconds / Effect<FloatType>::sampleRate / 20);
 		fadeOutStartPosition = std::max(0, totalFrames - seconds * Effect<FloatType>::sampleRate);
+		fadeType |= FadeTypeFadeOut;
+	}
+
+	int64_t getTotalFrames() const
+	{
+		return totalFrames;
+	}
+
+	void setTotalFrames(const int64_t &value)
+	{
+		totalFrames = value;
 	}
 
 private:
-    FloatType gain{1.0};
+	FloatType gain{1.0};
 	FloatType gainIncreaseRate{1.0};
 	FloatType gainDecreaseRate{1.0};
     int fadeType{0};
     int64_t position{0};
-    int64_t totalFrames{0};
+	int64_t totalFrames;//{0};
 	int fadeOutStartPosition{0};
 };
+
+
+
+
 
 }
 
