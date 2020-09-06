@@ -776,6 +776,7 @@ bool convert(ConversionInfo& ci)
 				FloatType peak;
 			};
 
+
 			std::vector<std::future<Result>> results(nChannels);
 			ctpl::thread_pool threadPool(nChannels);
 			size_t outputBlockIndex = 0;
