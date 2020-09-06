@@ -19,6 +19,7 @@
 #include "iqdemodulator.h"
 #include "mpxdecode.h"
 #include "stereoimager.h"
+#include "fadeeffect.h"
 #include "effectchain.h"
 
 #include <cstdio>
@@ -752,6 +753,8 @@ bool convert(ConversionInfo& ci)
 			stereoImager.setStereoWidth(ci.stereoWidth);
 			outputChain.add(&stereoImager);
 		}
+
+		//
 
 		bool hasOutputFX = !outputChain.empty();
 		// ---

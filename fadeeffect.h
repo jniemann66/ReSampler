@@ -13,7 +13,7 @@ enum FadeType {
 };
 
 template <typename FloatType>
-class StereoImager : public Effect<FloatType>
+class FadeEffect : public Effect<FloatType>
 {
 public:
     virtual const FloatType* process(const FloatType* inputBuffer, int sampleCount)
