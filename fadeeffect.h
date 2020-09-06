@@ -19,14 +19,34 @@ public:
     virtual const FloatType* process(const FloatType* inputBuffer, int sampleCount)
     {
         FloatType* p = Effect<FloatType>::outputBuffer.get();
+
+		if(fadeType == FadeTypeNone) {
+			// bypass
+			return inputBuffer;
+		}
+
         for(int i = 0; i < sampleCount; i += Effect<FloatType>::channelCount) {
             double inL = inputBuffer[i];
             double inR = inputBuffer[i + 1];
-            (void)inL; // todo: do something
-            (void)inR;
             p[i] = inL * gain;
             p[i + 1] = inR * gain;
-            gain *= gainChangeRate;
+
+			if(fadeType & FadeTypeFadeIn) {
+				if(gain < 1.0) {
+					gain *= gainIncreaseRate;
+					if(gain >= 1.0) {
+						gain = 1.0;
+						fadeType ^= FadeTypeFadeIn; // fade-in completed; switch it off
+					}
+				}
+			}
+
+			if(fadeType & FadeTypeFadeOut) {
+				if(position >= fadeOutStartPosition) {
+					gain *= gainDecreaseRate;
+				}
+			}
+
             position++;
         }
         return p;
@@ -44,27 +64,26 @@ public:
 
     void setFadeIn(double seconds)
     {
-        (void) seconds;
-        startPostion = 0;
-        stopPosition = seconds * Effect<FloatType>::sampleRate;
-        double initialDb = -100.0;
+		constexpr double initialDb = -100.0;
         gain = pow(10, initialDb / 20.0);
-        gainChangeRate = -initialDb / seconds / Effect<FloatType>::sampleRate;
+		gainIncreaseRate = pow(10, -initialDb / seconds / Effect<FloatType>::sampleRate / 20);
     }
 
     void setFadeOut(double seconds)
     {
-        (void) seconds;
-    }
+		constexpr double finalDb = -100.0;
+		gainDecreaseRate = pow(10, finalDb / seconds / Effect<FloatType>::sampleRate / 20);
+		fadeOutStartPosition = std::max(0, totalFrames - seconds * Effect<FloatType>::sampleRate);
+	}
+
 private:
     FloatType gain{1.0};
-    FloatType gainChangeRate{1.0};
+	FloatType gainIncreaseRate{1.0};
+	FloatType gainDecreaseRate{1.0};
     int fadeType{0};
     int64_t position{0};
     int64_t totalFrames{0};
-    int startPostion{0};
-    int stopPosition{0};
-
+	int fadeOutStartPosition{0};
 };
 
 }
