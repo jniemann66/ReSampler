@@ -95,7 +95,9 @@ struct ConversionInfo
 	bool bAdjustStereoWidth;
 	double stereoWidth;
 	bool bFadeIn;
+    bool bFadeOut;
 	double fadeInTime;
+    double fadeOutTime;
 
 	// functions
 	bool fromCmdLineArgs(int argc, char **argv); // populate ConversionInfo from args

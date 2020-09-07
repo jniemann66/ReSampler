@@ -73,7 +73,7 @@ public:
     {
 		constexpr double finalDb = -80.0;
 		gainDecreaseRate = pow(10, finalDb / seconds / Effect<FloatType>::sampleRate / 20);
-		fadeOutStartPosition = std::max(0, totalFrames - seconds * Effect<FloatType>::sampleRate);
+        fadeOutStartPosition = std::max((int64_t)0, static_cast<int64_t>(totalFrames - seconds * Effect<FloatType>::sampleRate));
 		fadeType |= FadeTypeFadeOut;
 	}
 

@@ -209,6 +209,10 @@ bool ConversionInfo::fromCmdLineArgs(int argc, char** argv) {
 	bDemodulateIQ = false;
 	bAdjustStereoWidth = false;
 	stereoWidth = 1.0;
+    bFadeIn = false;
+    bFadeOut = false;
+    fadeInTime = 0.0;
+    fadeOutTime = 0.0;
 
 	// get core parameters:
 	getCmdlineParam(argv, argv + argc, "-i", inputFilename);
@@ -283,6 +287,11 @@ bool ConversionInfo::fromCmdLineArgs(int argc, char** argv) {
 	if(bFadeIn) {
 		getCmdlineParam(argv, argv + argc, "--fade-in", fadeInTime);
 	}
+
+    bFadeOut = getCmdlineParam(argv, argv + argc, "--fade-out");
+    if(bFadeOut) {
+        getCmdlineParam(argv, argv + argc, "--fade-out", fadeOutTime);
+    }
 
 #if defined (_WIN32) || defined (_WIN64)
 	getCmdlineParam(argv, argv + argc, "--tempDir", tmpDir);

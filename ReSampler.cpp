@@ -755,10 +755,16 @@ bool convert(ConversionInfo& ci)
 			outputChain.add(stereoImager);
 		}
 
-		if(ci.bFadeIn) {
+        if(ci.bFadeIn || ci.bFadeOut) {
 			auto fadeEffect = new FadeEffect<FloatType>;
-			fadeEffect->setSampleRate(ci.outputSampleRate);
-			fadeEffect->setFadeIn(ci.fadeInTime);
+			fadeEffect->setSampleRate(ci.outputSampleRate); 
+            fadeEffect->setTotalFrames(inputFrames * ci.outputSampleRate / ci.inputSampleRate);
+            if(ci.bFadeIn) {
+                fadeEffect->setFadeIn(ci.fadeInTime);
+            }
+            if(ci.bFadeOut) {
+                fadeEffect->setFadeOut(ci.fadeOutTime);
+            }
 			outputChain.add(fadeEffect);
 		}
 
