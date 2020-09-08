@@ -759,10 +759,13 @@ bool convert(ConversionInfo& ci)
 			auto fadeEffect = new FadeEffect<FloatType>;
 			fadeEffect->setSampleRate(ci.outputSampleRate); 
             fadeEffect->setTotalFrames(inputFrames * ci.outputSampleRate / ci.inputSampleRate);
-            if(ci.bFadeIn) {
-                fadeEffect->setFadeIn(ci.fadeInTime);
-            }
-            if(ci.bFadeOut) {
+			const double shortestPossibleFade = 2.0 / ci.outputSampleRate;
+			if(ci.bFadeIn && ci.fadeInTime >= shortestPossibleFade) {
+				std::cout << "fade-in " << ci.fadeInTime << " seconds" << std::endl;
+				fadeEffect->setFadeIn(ci.fadeInTime);
+			}
+			if(ci.bFadeOut && ci.fadeOutTime >= shortestPossibleFade) {
+				std::cout << "fade-out " << ci.fadeOutTime << " seconds" << std::endl;
                 fadeEffect->setFadeOut(ci.fadeOutTime);
             }
 			outputChain.add(fadeEffect);
