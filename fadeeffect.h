@@ -56,6 +56,16 @@ public:
         return fadeType;
     }
 
+	int64_t getTotalFrames() const
+	{
+		return totalFrames;
+	}
+
+	double getQuietDb() const
+	{
+		return quietDb;
+	}
+
     void setFadeType(int value)
     {
         fadeType = value;
@@ -63,28 +73,21 @@ public:
 
     void setFadeIn(double seconds)
     {
-		constexpr double initialDb = -80.0;
 		fadeInStopPosition = std::min(std::max((int64_t)0, static_cast<int64_t>(seconds * Effect<FloatType>::sampleRate)), totalFrames - 1); // 0 <= fadeInStopPosition < totalFrames
 		if(fadeInStopPosition > 0) {
-			gain = pow(10, initialDb / 20.0);
-			gainIncreaseRate = pow(10, -initialDb / fadeInStopPosition / 20);
+			gain = pow(10, quietDb / 20.0);
+			gainIncreaseRate = pow(10, -quietDb / fadeInStopPosition / 20);
 			fadeType |= FadeTypeFadeIn;
 		}
     }
 
     void setFadeOut(double seconds)
     {
-		constexpr double finalDb = -80.0;
 		fadeOutStartPosition = std::max(fadeInStopPosition, static_cast<int64_t>(totalFrames - 1 - seconds * Effect<FloatType>::sampleRate));
 		if(fadeOutStartPosition < totalFrames - 1) {
-			gainDecreaseRate = pow(10, finalDb / (totalFrames - fadeOutStartPosition) / 20);
+			gainDecreaseRate = pow(10, quietDb / (totalFrames - fadeOutStartPosition) / 20);
 			fadeType |= FadeTypeFadeOut;
 		}
-	}
-
-	int64_t getTotalFrames() const
-	{
-		return totalFrames;
 	}
 
 	void setTotalFrames(const int64_t &value)
@@ -92,19 +95,23 @@ public:
 		totalFrames = value;
 	}
 
+
+	void setQuietDb(double value)
+	{
+		quietDb = value;
+	}
+
 private:
 	FloatType gain{1.0};
 	FloatType gainIncreaseRate{1.0};
 	FloatType gainDecreaseRate{1.0};
+	double quietDb{-80.0};
     int fadeType{0};
     int64_t position{0};
 	int64_t totalFrames{0};
 	int64_t fadeInStopPosition{0};
 	int64_t fadeOutStartPosition{0};
 };
-
-
-
 
 
 }
