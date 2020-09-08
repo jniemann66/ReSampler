@@ -80,6 +80,7 @@ const std::string strExtraOptions(
         "--demodulateIQ [<AM|LSB|USB|NFM|WFM>]\n"
         "--stereoWidth <amount>\n"
 		"--fade-in <time in seconds>\n"
+		"--fade-out <time in seconds>\n"
 		);
 
 const double clippingTrim = 1.0 - (1.0 / (1 << 23));

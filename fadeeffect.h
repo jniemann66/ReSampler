@@ -64,17 +64,22 @@ public:
     void setFadeIn(double seconds)
     {
 		constexpr double initialDb = -80.0;
-        gain = pow(10, initialDb / 20.0);
-		gainIncreaseRate = pow(10, -initialDb / seconds / Effect<FloatType>::sampleRate / 20);
-		fadeType |= FadeTypeFadeIn;
+		fadeInStopPosition = std::min(std::max((int64_t)0, static_cast<int64_t>(seconds * Effect<FloatType>::sampleRate)), totalFrames - 1); // 0 <= fadeInStopPosition < totalFrames
+		if(fadeInStopPosition > 0) {
+			gain = pow(10, initialDb / 20.0);
+			gainIncreaseRate = pow(10, -initialDb / fadeInStopPosition / 20);
+			fadeType |= FadeTypeFadeIn;
+		}
     }
 
     void setFadeOut(double seconds)
     {
 		constexpr double finalDb = -80.0;
-		gainDecreaseRate = pow(10, finalDb / seconds / Effect<FloatType>::sampleRate / 20);
-        fadeOutStartPosition = std::max((int64_t)0, static_cast<int64_t>(totalFrames - seconds * Effect<FloatType>::sampleRate));
-		fadeType |= FadeTypeFadeOut;
+		fadeOutStartPosition = std::max(fadeInStopPosition, static_cast<int64_t>(totalFrames - 1 - seconds * Effect<FloatType>::sampleRate));
+		if(fadeOutStartPosition < totalFrames - 1) {
+			gainDecreaseRate = pow(10, finalDb / (totalFrames - fadeOutStartPosition) / 20);
+			fadeType |= FadeTypeFadeOut;
+		}
 	}
 
 	int64_t getTotalFrames() const
@@ -93,8 +98,9 @@ private:
 	FloatType gainDecreaseRate{1.0};
     int fadeType{0};
     int64_t position{0};
-	int64_t totalFrames;//{0};
-	int fadeOutStartPosition{0};
+	int64_t totalFrames{0};
+	int64_t fadeInStopPosition{0};
+	int64_t fadeOutStartPosition{0};
 };
 
 

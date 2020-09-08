@@ -52,6 +52,11 @@ public:
 		return channelCount;
 	}
 
+	bool getTakeOwnership() const
+	{
+		return takeOwnership;
+	}
+
 	// setters
 	void setOutputBufferSize(int value)
 	{
@@ -61,11 +66,6 @@ public:
 	void setChannelCount(int value)
 	{
 		channelCount = value;
-	}
-
-	bool getTakeOwnership() const
-	{
-		return takeOwnership;
 	}
 
 	void setTakeOwnership(bool value)
