@@ -1,3 +1,5 @@
+// effect.h : defines Effect Base Class
+
 #ifndef EFFECT_H
 #define EFFECT_H
 
@@ -23,6 +25,11 @@ public:
 		return outputBufferSize;
 	}
 
+	int getSampleRate() const
+	{
+		return sampleRate;
+	}
+
 	// setters
 	void setChannelCount(int value)
 	{
@@ -35,11 +42,6 @@ public:
 		outputBuffer.reset(new FloatType[outputBufferSize]);
 	}
 
-    int getSampleRate() const
-    {
-        return sampleRate;
-    }
-
     void setSampleRate(int value)
     {
         sampleRate = value;
@@ -51,7 +53,6 @@ protected:
 	int outputBufferSize;
 	int channelCount;
     int sampleRate;
-
 };
 
 } // namespace ReSampler

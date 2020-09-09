@@ -1,5 +1,9 @@
+// effectchain.h : defines container for effects
+// if takeOwnership is set to true, effectchain will delete the effects upon destruction
+
 #ifndef EFFECTCHAIN_H
 #define EFFECTCHAIN_H
+
 
 #include "effect.h"
 #include <vector>
@@ -20,6 +24,7 @@ public:
 		}
 	}
 
+	// add() : adds an effect to the chain
 	void add(Effect<FloatType>* effect)
 	{
 		effect->setBufferSize(outputBufferSize);
@@ -27,6 +32,7 @@ public:
 		effects.push_back(effect);
 	}
 
+	// process() : runs input through chain of effects
 	const FloatType* process(const FloatType* inputBuffer, int sampleCount)
 	{
 		const FloatType* lastBuffer = inputBuffer;

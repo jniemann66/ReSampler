@@ -1,3 +1,8 @@
+// fadeeffect.h : defines FadeEffect Class
+// provides a basic fade-in at the start of the audio, or fade-out at the end of the audio
+// both fade-in and fade-out can be enabled,
+// but the fade times may be truncated if they exceed the play-time of the file
+
 #ifndef FADEEFFECT_H
 #define FADEEFFECT_H
 

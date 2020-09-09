@@ -1,3 +1,6 @@
+// stereoimager.h : defines stereo imager effect
+// widens or narrows stereo width by manipulating mid-side matrix
+
 #ifndef STEREOIMAGER_H
 #define STEREOIMAGER_H
 
