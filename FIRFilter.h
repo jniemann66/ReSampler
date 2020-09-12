@@ -583,7 +583,7 @@ namespace ReSampler {
 	}
 
 	#ifdef FIR_QUAD_PRECISION
-	__float128 I0q(__float128 x)
+	inline __float128 I0q(__float128 x)
 	{
 		__float128 result = 0.0Q;
 		__float128 kfact = 1.0Q;
