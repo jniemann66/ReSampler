@@ -48,7 +48,7 @@ public:
 		std::complex<double> theirs{filterI.filter(localI * input), filterQ.filter(localQ * input)};
 		double phaseDiff = -std::arg(theirs);
 
-		if(std::abs(phaseDiff > (M_TWOPI * 0.01))) {
+		if(std::abs(phaseDiff) > (M_TWOPI * 0.01)) {
 			phase += std::max(-maxJump, std::min(phaseDiff * 0.01, maxJump));
 			if(phase > M_PI) {
 				phase -= M_TWOPI;
