@@ -43,6 +43,7 @@ public:
 		maxJump = 2.0 * angularFreq;
 	}
 
+    // todo: fix : sync not working properly
 	void sync(double input)
 	{
 		std::complex<double> theirs{filterI.filter(localI * input), filterQ.filter(localQ * input)};
