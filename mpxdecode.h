@@ -46,6 +46,7 @@ public:
     // todo: fix : sync not working properly
 	void sync(double input)
 	{
+        // determine phase angle of pilot and run it through the filter
 		std::complex<double> theirs{filterI.filter(localI * input), filterQ.filter(localQ * input)};
 		double phaseDiff = -std::arg(theirs);
 
