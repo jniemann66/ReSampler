@@ -43,6 +43,13 @@ public:
 		maxJump = 2.0 * angularFreq;
 	}
 
+    void sync2(double input)
+    {
+        // phase discriminator
+        double ph = filterI.filter(localI * input);
+        (void)ph;
+    }
+
     // todo: fix : sync not working properly
 	void sync(double input)
 	{
