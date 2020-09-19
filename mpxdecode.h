@@ -40,7 +40,6 @@ public:
 		setFrequency(frequency);
 		biquad1.setCoeffs(0.002206408204233198, 0.004412816408466396, 0.002206408204233198, -1.8043019281465769, 0.814646474444927);
 		biquad2.setCoeffs(0.00390625, 0.0078125, 0.00390625, -1.8486208186651036, 0.8619515640441029);
-		saveIIRresponse("e:\\t\\4-pole-LPF.wav");
 	}
 
 	void sync(double input)
