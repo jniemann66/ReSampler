@@ -26,9 +26,9 @@ static const double M_TWOPI = 2.0 * M_PI;
 
 enum PilotPresence
 {
-    PilotPresenceUnknown,
-    PilotPresent,
-    PilotNotPresent
+	PilotPresenceUnknown,
+	PilotPresent,
+	PilotNotPresent
 };
 
 // NCO : numerically - controlled oscillator
@@ -38,28 +38,28 @@ public:
 	NCO(int sampleRate, double frequency = 19000) : sampleRate(sampleRate)
 	{
 		setFrequency(frequency);
-        biquad1.setCoeffs(0.002206408204233198, 0.004412816408466396, 0.002206408204233198, -1.8043019281465769, 0.814646474444927);
-        biquad2.setCoeffs(0.00390625, 0.0078125, 0.00390625, -1.8486208186651036, 0.8619515640441029);
+		biquad1.setCoeffs(0.002206408204233198, 0.004412816408466396, 0.002206408204233198, -1.8043019281465769, 0.814646474444927);
+		biquad2.setCoeffs(0.00390625, 0.0078125, 0.00390625, -1.8486208186651036, 0.8619515640441029);
+		saveIIRresponse("e:\\t\\4-pole-LPF.wav");
 	}
 
 	void sync(double input)
-    {
-        constexpr double anotherStupidConstant = 0.002;
-
-        // phase discriminator
-        freqOffset = anotherStupidConstant * biquad2.filter(biquad1.filter(localQ * input));
+	{
+		// phase discriminator
+		double ph = biquad2.filter(biquad1.filter(localQ * input));
 
 #ifdef MPXDECODER_DEBUG_PLL_SYNC
-        std::cout << freqOffset << "\n";
+		std::cout << ph << ", f=" << getFrequency() << "\n";
 #endif
 
-    }
+		setFrequency(19000 + ph);
+	}
 
 	// get() : get oscillator output
 	double get() {
 		localQ = std::sin(theta);
 		localI = std::cos(theta);
-        theta += (angularFreq + freqOffset);
+		theta += angularFreq;
 
 		if(theta > M_PI) {
 			theta -= M_TWOPI;
@@ -98,9 +98,8 @@ public:
 
 private:
 	int sampleRate;
-    ReSampler::Biquad<double> biquad1;
-    ReSampler::Biquad<double> biquad2;
-    double freqOffset{0.0};
+	ReSampler::Biquad<double> biquad1;
+	ReSampler::Biquad<double> biquad2;
 
 	double angularFreq;
 	double theta{0.0};
@@ -146,7 +145,7 @@ public:
 				  << 100.0 * stableCount / totalCount << "%, "
 				  << 100.0 * minusCount / totalCount << "%" << std::endl;
 
-        std::cout << "Peak Pilot Gain: " << peakPilotGain << std::endl;
+		std::cout << "Peak Pilot Gain: " << peakPilotGain << std::endl;
 	}
 #endif
 
@@ -202,39 +201,39 @@ public:
 #ifdef MPXDECODER_TUNE_PILOT_AGC
 			stableCount++;
 #endif
-            pilotPresence = PilotPresent;
+			pilotPresence = PilotPresent;
 		}
 
 #ifdef MPXDECODER_TUNE_PILOT_AGC
 		peakPilotGain = std::max(pilotGain, peakPilotGain);
 #endif
-        FloatType left;
-        FloatType right;
+		FloatType left;
+		FloatType right;
 
 		if(pilotPresence != PilotPresent) {
-            left = mono;
-            right = mono;
+			left = mono;
+			right = mono;
 		} else { // todo: fade from mono to stereo (& back ...)
-            double p = nco.get();
+			double p = nco.get();
 			nco.sync(pilot);
-            FloatType doubledPilot = 2 * p * p - 1.0;
+			FloatType doubledPilot = 2 * p * p - 1.0;
 
-            // do the spectrum shift
-            constexpr double scaling = 2.5 * 2;
-            FloatType side = scaling * doubledPilot * sideRaw;
+			// do the spectrum shift
+			constexpr double scaling = 2.5 * 2;
+			FloatType side = scaling * doubledPilot * sideRaw;
 
-            // separate L, R stereo channels
-            left = stereoGain * (mono + stereoWidth * side);
-            right = stereoGain * (mono - stereoWidth * side);
-        }
+			// separate L, R stereo channels
+			left = stereoGain * (mono + stereoWidth * side);
+			right = stereoGain * (mono - stereoWidth * side);
+		}
 
 		if(!lowpassEnabled) {
 			return {left, right};
 		}
 
-        // filter & return output
-        filters.at(3).put(left);
-        filters.at(4).put(right);
+		// filter & return output
+		filters.at(3).put(left);
+		filters.at(4).put(right);
 
 		return {filters.at(3).get(), filters.at(4).get()};
 	}
@@ -380,7 +379,7 @@ private:
 	int currentIndex;
 	int centerTap;
 
-    PilotPresence pilotPresence{PilotPresenceUnknown};
+	PilotPresence pilotPresence{PilotPresenceUnknown};
 	bool lowpassEnabled{true}; // do final stereo 15khz LPF or not ?
 	double pilotPeak{0.0};
 	double pilotGain{1.0};
