@@ -83,7 +83,6 @@ bool getCmdlineParam(char** begin, char** end, const std::string& option, std::v
 	return found;
 }
 
-
 // switch only (no parameter value)
 bool getCmdlineParam(char** begin, char** end, const std::string& option)
 {

@@ -35,49 +35,30 @@ enum PilotPresence
 class NCO
 {
 public:
-	NCO(int sampleRate, double frequency = 19000) : sampleRate(sampleRate),
-		filterI(0.0009357513270600214, 0.0018715026541200428, 0.0009357513270600214, -1.8931095931212278, 0.896852598429468),
-		filterQ(0.0009357513270600214, 0.0018715026541200428, 0.0009357513270600214, -1.8931095931212278, 0.896852598429468)
+	NCO(int sampleRate, double frequency = 19000) : sampleRate(sampleRate)
 	{
 		setFrequency(frequency);
-		maxJump = 2.0 * angularFreq;
         biquad1.setCoeffs(0.002206408204233198, 0.004412816408466396, 0.002206408204233198, -1.8043019281465769, 0.814646474444927);
         biquad2.setCoeffs(0.00390625, 0.0078125, 0.00390625, -1.8486208186651036, 0.8619515640441029);
+		saveIIRresponse("e:\\t\\4-pole-LPF.wav");
 	}
 
-    void sync2(double input)
+	void sync(double input)
     {
         // phase discriminator
-        double ph = biquad2.filter(biquad1.filter(localI * input));
-        (void)ph;
-    }
-
-    // todo: fix : sync not working properly
-	void sync(double input)
-	{
-        // determine phase angle of pilot and run it through the filter
-		std::complex<double> theirs{filterI.filter(localI * input), filterQ.filter(localQ * input)};
-		double phaseDiff = -std::arg(theirs);
-
-		if(std::abs(phaseDiff > (M_TWOPI * 0.01))) {
-			phase += std::max(-maxJump, std::min(phaseDiff * 0.01, maxJump));
-			if(phase > M_PI) {
-				phase -= M_TWOPI;
-			} else if (phase < - M_PI) {
-				phase += M_TWOPI;
-			}
-		}
+		double ph = biquad2.filter(biquad1.filter(localQ * input));
 
 #ifdef MPXDECODER_DEBUG_PLL_SYNC
-		std::cout << 360.0 * phaseDiff / (M_TWOPI) << "\n";
+		std::cout << ph << ", f=" << getFrequency() << "\n";
 #endif
 
-	}
+		setFrequency(19000 + ph);
+    }
 
 	// get() : get oscillator output
 	double get() {
-		localQ = std::sin(theta + phase);
-		localI = std::cos(theta + phase);
+		localQ = std::sin(theta);
+		localI = std::cos(theta);
 		theta += angularFreq;
 
 		if(theta > M_PI) {
@@ -96,44 +77,33 @@ public:
 		angularFreq = (M_TWOPI * value) / sampleRate;
 	}
 
-	static void saveFilters1(const std::string& filename)
+	static void saveIIRresponse(const std::string& filename)
 	{
-		SndfileHandle sndfile(filename, SFM_WRITE, SF_FORMAT_WAV | SF_FORMAT_FLOAT, 1, 192000);
+		SndfileHandle sndfile(filename, SFM_WRITE, SF_FORMAT_WAV | SF_FORMAT_FLOAT, 1, 300000);
 		std::vector<double> impulseResponse(10000, 0.0);
-		ReSampler::Biquad<double> filt(0.019305318724235306, 0.03861063744847061, 0.019305318724235306, -1.5005428941316463, 0.5777641690285875);
 
-		impulseResponse[100] = filt.filter(1.0);
-		for(int i = 100; i < static_cast<int>(impulseResponse.size()); i++)
+		// 4-pole LPF for filtering the pilot tone phase-detector
+		ReSampler::Biquad<double> f1(0.002206408204233198, 0.004412816408466396, 0.002206408204233198, -1.8043019281465769, 0.814646474444927);
+		ReSampler::Biquad<double> f2(0.00390625, 0.0078125, 0.00390625, -1.8486208186651036, 0.8619515640441029);
+
+		impulseResponse[100] = f2.filter(f1.filter(1.0));
+		for(int i = 101; i < static_cast<int>(impulseResponse.size()); i++)
 		{
-			impulseResponse[i] = filt.filter(0.0);
+			impulseResponse[i] = f2.filter(f1.filter(0.0));
 		}
 
 		sndfile.writef(impulseResponse.data(), impulseResponse.size());
 	}
 
-	double getPhase() const
-	{
-		return phase;
-	}
-
-	void setPhase(double value)
-	{
-		phase = value;
-	}
-
 private:
 	int sampleRate;
-	ReSampler::Biquad<double> filterI;
-	ReSampler::Biquad<double> filterQ;
     ReSampler::Biquad<double> biquad1;
     ReSampler::Biquad<double> biquad2;
 
-	double maxJump;
 	double angularFreq;
 	double theta{0.0};
 	double localI{1.0}; // todo: starting positions ?
 	double localQ{0.0};
-	double phase{0.0};
 };
 
 class MpxDecoder
@@ -244,7 +214,7 @@ public:
             right = mono;
 		} else { // todo: fade from mono to stereo (& back ...)
             double p = nco.get();
-            nco.sync(pilot);
+			nco.sync(pilot);
             FloatType doubledPilot = 2 * p * p - 1.0;
 
             // do the spectrum shift
@@ -358,6 +328,7 @@ public:
 		}
 		sndfile.writef(interleaved.data(), filt1.size());
 	}
+
 
 	static double getLpfT()
 	{
