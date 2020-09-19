@@ -40,26 +40,26 @@ public:
 		setFrequency(frequency);
         biquad1.setCoeffs(0.002206408204233198, 0.004412816408466396, 0.002206408204233198, -1.8043019281465769, 0.814646474444927);
         biquad2.setCoeffs(0.00390625, 0.0078125, 0.00390625, -1.8486208186651036, 0.8619515640441029);
-		saveIIRresponse("e:\\t\\4-pole-LPF.wav");
 	}
 
 	void sync(double input)
     {
+        constexpr double anotherStupidConstant = 0.002;
+
         // phase discriminator
-		double ph = biquad2.filter(biquad1.filter(localQ * input));
+        freqOffset = anotherStupidConstant * biquad2.filter(biquad1.filter(localQ * input));
 
 #ifdef MPXDECODER_DEBUG_PLL_SYNC
-		std::cout << ph << ", f=" << getFrequency() << "\n";
+        std::cout << freqOffset << "\n";
 #endif
 
-		setFrequency(19000 + ph);
     }
 
 	// get() : get oscillator output
 	double get() {
 		localQ = std::sin(theta);
 		localI = std::cos(theta);
-		theta += angularFreq;
+        theta += (angularFreq + freqOffset);
 
 		if(theta > M_PI) {
 			theta -= M_TWOPI;
@@ -99,6 +99,7 @@ private:
 	int sampleRate;
     ReSampler::Biquad<double> biquad1;
     ReSampler::Biquad<double> biquad2;
+    double freqOffset{0.0};
 
 	double angularFreq;
 	double theta{0.0};
