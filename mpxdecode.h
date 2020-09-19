@@ -41,12 +41,14 @@ public:
 	{
 		setFrequency(frequency);
 		maxJump = 2.0 * angularFreq;
+        biquad1.setCoeffs(0.002206408204233198, 0.004412816408466396, 0.002206408204233198, -1.8043019281465769, 0.814646474444927);
+        biquad2.setCoeffs(0.00390625, 0.0078125, 0.00390625, -1.8486208186651036, 0.8619515640441029);
 	}
 
     void sync2(double input)
     {
         // phase discriminator
-        double ph = filterI.filter(localI * input);
+        double ph = biquad2.filter(biquad1.filter(localI * input));
         (void)ph;
     }
 
@@ -109,7 +111,6 @@ public:
 		sndfile.writef(impulseResponse.data(), impulseResponse.size());
 	}
 
-
 	double getPhase() const
 	{
 		return phase;
@@ -124,6 +125,8 @@ private:
 	int sampleRate;
 	ReSampler::Biquad<double> filterI;
 	ReSampler::Biquad<double> filterQ;
+    ReSampler::Biquad<double> biquad1;
+    ReSampler::Biquad<double> biquad2;
 
 	double maxJump;
 	double angularFreq;
