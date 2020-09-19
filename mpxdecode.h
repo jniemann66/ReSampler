@@ -74,6 +74,7 @@ public:
 
 	void setFrequency(double value)
 	{
+		// todo: avoid division etc
 		angularFreq = (M_TWOPI * value) / sampleRate;
 	}
 
