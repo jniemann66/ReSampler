@@ -65,7 +65,7 @@ public:
 		if(theta > M_PI) {
 			theta -= M_TWOPI;
 		}
-		return localI;
+        return localI;
 	}
 
 	double getFrequency() const
