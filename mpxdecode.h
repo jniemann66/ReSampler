@@ -73,6 +73,10 @@ public:
 		return 2.0 * sinOut * cosOut;
 	}
 
+	// todo: frequency-tripler
+	// sin(3ϴ) = (4cos^2(ϴ) - 1) * sin(ϴ)
+	// (Chebyshev polynomial of the SECOND kind multipled by sinϴ)
+
 	double getFrequency() const
 	{
         return angularToHzFactor * angularFreq;
