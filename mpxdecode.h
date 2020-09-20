@@ -35,37 +35,42 @@ enum PilotPresence
 class NCO
 {
 public:
-	NCO(int sampleRate, double frequency = 19000) : sampleRate(sampleRate)
+	NCO(int sampleRate, double centerFrequencyHz = 19000.0) : sampleRate(sampleRate), centerFrequencyHz(centerFrequencyHz)
 	{
-        hzToAngularFactor = M_TWOPI / sampleRate; // for converting Hz to radians / sample
-        angularToHzFactor = sampleRate / M_TWOPI; // for converting radians / sample to Hz
-		setFrequency(frequency);
+		hzToAngularFactor = M_TWOPI / NCO::sampleRate; // for converting Hz to radians / sample
+		angularToHzFactor = NCO::sampleRate / M_TWOPI; // for converting radians / sample to Hz
+		setFrequency(centerFrequencyHz);
 		biquad1.setCoeffs(0.002206408204233198, 0.004412816408466396, 0.002206408204233198, -1.8043019281465769, 0.814646474444927);
 		biquad2.setCoeffs(0.00390625, 0.0078125, 0.00390625, -1.8486208186651036, 0.8619515640441029);
 	}
 
 	void sync(double input)
 	{
-		// phase discriminator
-		double ph = biquad2.filter(biquad1.filter(localQ * input));
+		// advance position
+		theta += angularFreq;
+		if(theta > M_PI) {
+			theta -= M_TWOPI;
+		}
+
+		// detect phase
+		double phase = biquad2.filter(biquad1.filter(cosOut * input));
 
 #ifdef MPXDECODER_DEBUG_PLL_SYNC
 		std::cout << ph << ", f=" << getFrequency() << "\n";
 #endif
 
-        setFrequency(19000.0 + ph);
+		// some constant that I don't know how to set properly (controls how aggressively the frequency is altered)
+		constexpr double anotherStupidConstant = 10.0;
+
+		// adjust frequency
+		setFrequency(centerFrequencyHz + anotherStupidConstant * phase);
 	}
 
 	// get() : get oscillator output
-	double get() {
-		localQ = std::sin(theta);
-		localI = std::cos(theta);
-		theta += angularFreq;
-
-		if(theta > M_PI) {
-			theta -= M_TWOPI;
-		}
-        return localI;
+	double getDoubled() {
+		sinOut = std::sin(theta);
+		cosOut = std::cos(theta);
+		return 2.0 * sinOut * cosOut;
 	}
 
 	double getFrequency() const
@@ -97,16 +102,18 @@ public:
 	}
 
 private:
-	int sampleRate;
 	ReSampler::Biquad<double> biquad1;
 	ReSampler::Biquad<double> biquad2;
 
-    double hzToAngularFactor{0.0};
-    double angularToHzFactor{0.0};
+	int sampleRate;
+	double centerFrequencyHz;
 	double angularFreq;
+	double hzToAngularFactor;
+	double angularToHzFactor;
+
 	double theta{0.0};
-	double localI{1.0}; // todo: starting positions ?
-	double localQ{0.0};
+	double cosOut{1.0};
+	double sinOut{0.0};
 };
 
 class MpxDecoder
@@ -216,13 +223,11 @@ public:
 			left = mono;
 			right = mono;
 		} else { // todo: fade from mono to stereo (& back ...)
-			double p = nco.get();
-			nco.sync(pilot);
-			FloatType doubledPilot = 2 * p * p - 1.0;
 
 			// do the spectrum shift
 			constexpr double scaling = 2.5 * 2;
-			FloatType side = scaling * doubledPilot * sideRaw;
+			FloatType side = scaling * nco.getDoubled() * sideRaw;
+			nco.sync(pilot);
 
 			// separate L, R stereo channels
 			left = stereoGain * (mono + stereoWidth * side);
