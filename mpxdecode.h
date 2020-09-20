@@ -37,6 +37,8 @@ class NCO
 public:
 	NCO(int sampleRate, double frequency = 19000) : sampleRate(sampleRate)
 	{
+        hzToAngularFactor = M_TWOPI / sampleRate; // for converting Hz to radians / sample
+        angularToHzFactor = sampleRate / M_TWOPI; // for converting radians / sample to Hz
 		setFrequency(frequency);
 		biquad1.setCoeffs(0.002206408204233198, 0.004412816408466396, 0.002206408204233198, -1.8043019281465769, 0.814646474444927);
 		biquad2.setCoeffs(0.00390625, 0.0078125, 0.00390625, -1.8486208186651036, 0.8619515640441029);
@@ -51,7 +53,7 @@ public:
 		std::cout << ph << ", f=" << getFrequency() << "\n";
 #endif
 
-		setFrequency(19000 + ph);
+        setFrequency(19000.0 + ph);
 	}
 
 	// get() : get oscillator output
@@ -68,13 +70,12 @@ public:
 
 	double getFrequency() const
 	{
-		return sampleRate * angularFreq / (M_TWOPI);
+        return angularToHzFactor * angularFreq;
 	}
 
 	void setFrequency(double value)
-	{
-		// todo: avoid division etc
-		angularFreq = (M_TWOPI * value) / sampleRate;
+    {
+        angularFreq = hzToAngularFactor * value;
 	}
 
 	static void saveIIRresponse(const std::string& filename)
@@ -100,6 +101,8 @@ private:
 	ReSampler::Biquad<double> biquad1;
 	ReSampler::Biquad<double> biquad2;
 
+    double hzToAngularFactor{0.0};
+    double angularToHzFactor{0.0};
 	double angularFreq;
 	double theta{0.0};
 	double localI{1.0}; // todo: starting positions ?
@@ -380,7 +383,7 @@ private:
 
 	PilotPresence pilotPresence{PilotPresenceUnknown};
 	bool lowpassEnabled{true}; // do final stereo 15khz LPF or not ?
-	double pilotPeak{0.0};
+    double pilotPeak{0.0};
 	double pilotGain{1.0};
 	double increaseRate;
 	double decreaseRate;
