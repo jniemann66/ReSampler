@@ -66,16 +66,19 @@ public:
 		setFrequency(centerFrequencyHz + anotherStupidConstant * phase);
 	}
 
-	// get() : get oscillator output
+	// getDoubled() : get frequency-doubled oscillator output (call this function first)
 	double getDoubled() {
 		sinOut = std::sin(theta);
 		cosOut = std::cos(theta);
-		return 2.0 * sinOut * cosOut;
+		return 2.0 * cosOut * sinOut;
 	}
 
-	// todo: frequency-tripler
-	// sin(3ϴ) = (4cos^2(ϴ) - 1) * sin(ϴ)
-	// (Chebyshev polynomial of the SECOND kind multipled by sinϴ)
+	// getTripled() : get frequency-tripled oscillator output
+	double getTripled() {
+		// Chebyshev polynomial of the SECOND kind multipled by sinϴ
+		// sin(3ϴ) = (4cos^2(ϴ) - 1) * sin(ϴ)
+		return (4.0 * cosOut * cosOut - 1.0) * sinOut;
+	}
 
 	double getFrequency() const
 	{
