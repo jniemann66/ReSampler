@@ -150,7 +150,6 @@ public:
 		decreaseRate = std::pow(10.0, /* dB per sec = */ -12.0 / sampleRate / 20.0);
 		increaseRate = std::pow(10.0, 64.0 / sampleRate / 20.0);
 		setStereoWidth(0.5);
-
 	}
 
 #ifdef MPXDECODER_TUNE_PILOT_AGC
@@ -226,6 +225,8 @@ public:
 		FloatType left;
 		FloatType right;
 
+		double local38k;
+
 		if(pilotPresence != PilotPresent) {
 			left = mono;
 			right = mono;
@@ -233,7 +234,8 @@ public:
 
 			// do the spectrum shift
 			constexpr double scaling = 2.5 * 2;
-			FloatType side = scaling * nco.getDoubled() * sideRaw;
+			local38k = nco.getDoubled();
+			FloatType side = scaling * local38k * sideRaw;
 			nco.sync(pilot);
 
 			// separate L, R stereo channels

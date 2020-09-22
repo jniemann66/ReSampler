@@ -27,8 +27,8 @@
 #include "biquad.h"
 #include "mpxdecode.h"
 
-
 // #define COLLECT_IQ_STATS
+// #define ALTERNATIVE_FM_FUNCTIONS
 
 #define ERROR_IQFILE_WFM_SAMPLERATE_TOO_LOW (0xff01)
 #define ERROR_IQFILE_TWO_CHANNELS_EXPECTED (0xff02)
@@ -324,6 +324,7 @@ private:
         return gainTrim * dP;
 	}
 
+#ifdef ALTERNATIVE_FM_FUNCTIONS
 	// demodulateFM2() : atan2-free, arbitrary FIR length
     template<typename FloatType>
 	FloatType demodulateFM2(FloatType i, FloatType q)
@@ -415,6 +416,7 @@ private:
 		double gain = 2.0 / (c + i1 * i1 + q1 * q1);
 		return gain * (((q0 - q2) * i1) - ((i0 - i2) * q1));
 	}
+#endif // ALTERNATIVE_FM_FUNCTIONS
 
 	template<typename FloatType>
 	FloatType demodulateAM(FloatType i, FloatType q)
@@ -458,6 +460,7 @@ private:
 	ModulationType modulationType{ModulationType::NFM};
 	DeEmphasisType deEmphasisType{DeEmphasis50};
 
+#ifdef ALTERNATIVE_FM_FUNCTIONS
 	// registers used for demodulating FM (atan2-less)
 	double i0{0.0};
 	double i1{0.0};
@@ -465,6 +468,7 @@ private:
 	double q0{0.0};
 	double q1{0.0};
 	double q2{0.0};
+#endif
 
 	// registers for demodulating FM (atan2 version)
 	std::complex<double> z0{0.0};
