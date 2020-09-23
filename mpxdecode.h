@@ -21,8 +21,11 @@
 
 static const double M_TWOPI = 2.0 * M_PI;
 
+// debugging / diagnostic switches (not enabled for normal use)
 // #define MPXDECODER_TUNE_PILOT_AGC
 // #define MPXDECODER_DEBUG_PLL_SYNC
+// #define MPXDECODER_SAVE_PILOT
+// ---
 
 enum PilotPresence
 {
@@ -35,13 +38,13 @@ enum PilotPresence
 class NCO
 {
 public:
-	NCO(int sampleRate, double centerFrequencyHz = 19000.0) : sampleRate(sampleRate), centerFrequencyHz(centerFrequencyHz)
-	{
+	NCO(int sampleRate, double centerFrequencyHz = 19000.0) : sampleRate(sampleRate), centerFrequencyHz(centerFrequencyHz) 
+	{ 
 		hzToAngularFactor = M_TWOPI / NCO::sampleRate; // for converting Hz to radians / sample
 		angularToHzFactor = NCO::sampleRate / M_TWOPI; // for converting radians / sample to Hz
 		setFrequency(centerFrequencyHz);
 		biquad1.setCoeffs(0.002206408204233198, 0.004412816408466396, 0.002206408204233198, -1.8043019281465769, 0.814646474444927);
-		biquad2.setCoeffs(0.00390625, 0.0078125, 0.00390625, -1.8486208186651036, 0.8619515640441029);
+		biquad2.setCoeffs(0.00390625, 0.0078125, 0.00390625, -1.8486208186651036, 0.8619515640441029);        
 	}
 
 	void sync(double input)
@@ -150,6 +153,11 @@ public:
 		decreaseRate = std::pow(10.0, /* dB per sec = */ -12.0 / sampleRate / 20.0);
 		increaseRate = std::pow(10.0, 64.0 / sampleRate / 20.0);
 		setStereoWidth(0.5);
+
+#ifdef MPXDECODER_SAVE_PILOT
+        pilotOutFile.reset(new SndfileHandle("/tmp/pilot.wav", SFM_WRITE, SF_FORMAT_WAV | SF_FORMAT_FLOAT, 2, sampleRate));
+#endif
+
 	}
 
 #ifdef MPXDECODER_TUNE_PILOT_AGC
@@ -235,6 +243,13 @@ public:
 			// do the spectrum shift
 			constexpr double scaling = 2.5 * 2;
 			local38k = nco.getDoubled();
+
+#ifdef MPXDECODER_SAVE_PILOT
+            double pilotOut[2];
+            pilotOut[0] = pilot;
+            pilotOut[1] = local38k;
+            pilotOutFile->write(pilotOut, 2);
+#endif
 			FloatType side = scaling * local38k * sideRaw;
 			nco.sync(pilot);
 
@@ -346,7 +361,6 @@ public:
 		sndfile.writef(interleaved.data(), filt1.size());
 	}
 
-
 	static double getLpfT()
 	{
 		return lpfT;
@@ -409,6 +423,10 @@ private:
 	int64_t minusCount{0};
 	int64_t stableCount{0};
 	double peakPilotGain{0.0};
+#endif
+
+#ifdef MPXDECODER_SAVE_PILOT
+    std::unique_ptr<SndfileHandle> pilotOutFile;
 #endif
 
 };
