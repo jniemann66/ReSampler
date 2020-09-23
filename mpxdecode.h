@@ -10,7 +10,7 @@
 #ifndef MPXDECODE_H
 #define MPXDECODE_H
 
-// FM Broadcast Multiplex Decoder (WIP)
+// FM Broadcast Multiplex Decoder
 
 #include <vector>
 #include <sndfile.h>
