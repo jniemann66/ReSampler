@@ -109,8 +109,12 @@ public:
 			differentiatorCoeffs = differentiators.at(differentiatorType);
 			differentiatorLength = differentiatorCoeffs.size();
 			differentiatorDelay = differentiatorLength / 2;
+
+#ifdef ALTERNATIVE_FM_FUNCTIONS
 			historyI.resize(differentiatorLength, 0.0);
-			historyQ.resize(differentiatorLength, 0.0);
+            historyQ.resize(differentiatorLength, 0.0);
+#endif
+
 			phaseHistory.resize(differentiatorLength, 0.0);
 			differentiatorIndex = differentiatorLength - 1;
 
@@ -577,8 +581,12 @@ private:
     int differentiatorLength;
     int differentiatorDelay;
     int differentiatorIndex;
+
+#ifdef ALTERNATIVE_FM_FUNCTIONS
     std::vector<double> historyI;
     std::vector<double> historyQ;
+#endif
+
 	std::vector<double> phaseHistory;
 
 #ifdef COLLECT_IQ_STATS
