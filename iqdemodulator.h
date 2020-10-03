@@ -430,7 +430,7 @@ private:
 	}
 
 	// setDeEmphasisHz() : set up deemphasis filter, given a frequency in Hz
-	//	double tau = 1/(2*pi*f); // Hz to time constant
+    //	double tau = 1 / (2 * pi * f); // Hz to time constant
 	//	double f = 2122.1; // 75 us
 	//  double f = 3183.1; // 50 us
 
@@ -456,7 +456,7 @@ private:
 	std::unique_ptr<SndfileHandle> sndfileHandle;
 	std::unique_ptr<MpxDecoder> mpxDecoder;
 	std::vector<double> wavBuffer;
-	std::vector<Biquad<double>> deEmphasisFilters;
+    std::vector<Biquad<double>> deEmphasisFilters;
 	std::vector<double> differentiatorCoeffs;
 
 	// properties

@@ -63,13 +63,14 @@ public:
 #endif
 
 		// some constant that I don't know how to set properly (controls how aggressively the frequency is altered)
-		constexpr double anotherStupidConstant = 10.0;
+        constexpr double someStoopidConstant = 10.0;
 
 		// adjust frequency
-		setFrequency(centerFrequencyHz + anotherStupidConstant * phase);
+        setFrequency(centerFrequencyHz + someStoopidConstant * phase);
 	}
 
-	// getDoubled() : get frequency-doubled oscillator output (call this function first)
+    // getDoubled() : get frequency-doubled oscillator output
+    // (call this function first, because it evaluates sinOut and cosOut)
 	double getDoubled() {
 		sinOut = std::sin(theta);
 		cosOut = std::cos(theta);
@@ -122,8 +123,8 @@ private:
 	double angularToHzFactor;
 
 	double theta{0.0};
-	double cosOut{1.0};
-	double sinOut{0.0};
+    double cosOut{1.0}; // oscillator cosine output
+    double sinOut{0.0}; // oscillator sine output
 };
 
 class MpxDecoder
