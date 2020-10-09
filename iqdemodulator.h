@@ -127,7 +127,7 @@ public:
 			// set de-emphasis
 			if(modulationType == WFM) {
 				if(samplerate() != 0) {
-
+                    // to-do: more deemphasis settings ??
 					switch (deEmphasisType) {
 					case NoDeEmphasis:
 						break;
