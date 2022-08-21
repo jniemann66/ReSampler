@@ -1,3 +1,9 @@
+## Version 2.1.1
+
+DSF bug in ReSampler v2.1.0: When resampling from some DSF (DSD audio) sources,there are unexpected peaks at the end of destination audio file.
+
+The reason is ReSampler v2.1.0 uses "Size of this chunk" info in  Data Chuck of DSF files to calculate input sample count,but the result is not consist with "Sample count" info in Fmt Chuck.
+To solve this problem,Version 2.1.1 uses "Sample count" info in Fmt Chuck to calculate the correct input sample count.
 
 ## Synopsis
 ReSampler is a high-performance command-line audio sample rate conversion tool which can convert audio file formats with a variety of different bit-depths and audio channel configurations.
