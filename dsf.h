@@ -352,12 +352,16 @@ namespace ReSampler {
 			}
 
 			startOfData = static_cast<uint64_t>(file.tellg());
-			endOfData = dsfDSDChunk.length + dsfFmtChunk.length + dsfDataChunk.length;
+			//--- by diablo2049 ---
+			endOfData = sizeof(dsfDSDChunk) + sizeof(dsfFmtChunk) + sizeof(dsfDataChunk) + numSamples / 8;
+			//endOfData = dsfDSDChunk.length + dsfFmtChunk.length + dsfDataChunk.length;
 
+			/*
 			assert( // metadata tag either non-existent or at end of data
 				(dsfDSDChunk.metadataPtr == 0) ||
 				(dsfDSDChunk.metadataPtr == endOfData)
 			);
+			*/
 		}
 
 		// readBlocks() : reads blockSize bytes into each channelBuffer for numChannels channels
