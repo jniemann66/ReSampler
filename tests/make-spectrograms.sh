@@ -20,10 +20,12 @@ os=`tolower $OSTYPE`
 if [ $os == 'cygwin' ] || [ $os == 'msys' ]
 then 
     #Windows ...
-    spectrogram_tool="spectrogram"
+    #spectrogram_tool="spectrogram"
+    spectrogram_tool="sndspec"
 else
     #*nix ...
-    spectrogram_tool="sndfile-spectrogram"
+    spectrogram_tool="sndspec"
+    #spectrogram_tool="sndfile-spectrogram"
 fi
 
 echo $(tput setaf 2)cleaning ./spectrograms folder ...$(tput setaf 7)
@@ -33,11 +35,20 @@ echo $(tput setaf 2)generating spectrograms ...$(tput setaf 1)
 
 if [[ "$OSTYPE" == "darwin"* ]]; 
 then 
-    #series
+    #----------#
+    #  series  #
+    #----------#
     find ./outputs -type f ! -name '*.png' ! -name '*.txt' -exec $spectrogram_tool --dyn-range=190 '{}' 1200 960 '{}'.png \;
 else 
-    #parallel
-    find ./outputs -type f ! -name '*.png' ! -name '*.txt' ! -name '*.sd2' ! -name '*.raw' -print0 | xargs -i --null -n 1 -P $numThreads $spectrogram_tool --dyn-range=190 {} 1200 960 {}.png 
+    #----------#
+    # parallel #
+    #----------#
+
+    #cmdline for 'spectrogram' program:
+    #find ./outputs -type f ! -name '*.png' ! -name '*.txt' ! -name '*.sd2' ! -name '*.raw' -print0 | xargs -i --null -n 1 -P $numThreads $spectrogram_tool --dyn-range=190 {} 1200 960 {}.png 
+
+    #cmdline for 'sndspec' program:
+    find ./outputs -type f ! -name '*.png' ! -name '*.txt' ! -name '*.sd2' ! -name '*.raw' -print0 | xargs -i --null -n 1 -P $numThreads $spectrogram_tool --dyn-range=190 {} -w 1200 -h 960 -o ./outputs 
 fi
 
 echo $(tput setaf 2)moving spectrograms to ./spectrograms folder$(tput setaf 7)

@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2016 - 2021 Judd Niemann - All Rights Reserved.
+* Copyright (C) 2016 - 2023 Judd Niemann - All Rights Reserved.
 * You may use, distribute and modify this code under the
 * terms of the GNU Lesser General Public License, version 2.1
 *
@@ -334,7 +334,7 @@ seek(position, whence)
 template<typename FileReader, typename FloatType>
 bool convert(ConversionInfo& ci)
 {
-	bool multiThreaded = ci.bMultiThreaded;
+    const bool multiThreaded = ci.bMultiThreaded;
 
 	// pointer for temp file;
 	SndfileHandle* tmpSndfileHandle = nullptr;
@@ -392,7 +392,7 @@ bool convert(ConversionInfo& ci)
 	// Open input file
 	FileReader infile(ci.inputFilename, infileMode, infileFormat, infileChannels, infileRate);
 
-    int e = infile.error();
+    const int e = infile.error();
     if (e != SF_ERR_NO_ERROR) {
         if(e == ERROR_IQFILE_WFM_SAMPLERATE_TOO_LOW) {
             std::cout << "Sample Rate not high enough for WFM" << std::endl;
@@ -409,20 +409,20 @@ bool convert(ConversionInfo& ci)
 	getMetaData(m, infile);
 
 	// read input file properties:
-	int nChannels = static_cast<int>(infile.channels());
+    const int nChannels = static_cast<int>(infile.channels());
 	ci.inputSampleRate = infile.samplerate();
-	sf_count_t inputFrames = infile.frames();
-	sf_count_t inputSampleCount = inputFrames * nChannels;
-	double inputDuration = 1000.0 * inputFrames / ci.inputSampleRate; // ms
+    const sf_count_t inputFrames = infile.frames();
+    const sf_count_t inputSampleCount = inputFrames * nChannels;
+    const double inputDuration = 1000.0 * inputFrames / ci.inputSampleRate; // ms
 
 	// determine conversion ratio:
 	Fraction fraction = getFractionFromSamplerates(ci.inputSampleRate, ci.outputSampleRate);
 
 	// set buffer sizes:
-	auto inputChannelBufferSize = static_cast<size_t>(BUFFERSIZE);
-	auto inputBlockSize = static_cast<size_t>(BUFFERSIZE * nChannels);
-	auto outputChannelBufferSize = static_cast<size_t>(1 + std::ceil(BUFFERSIZE * static_cast<double>(fraction.numerator) / static_cast<double>(fraction.denominator)));
-	auto outputBlockSize = static_cast<size_t>(nChannels * (1 + outputChannelBufferSize));
+    const auto inputChannelBufferSize = static_cast<size_t>(BUFFERSIZE);
+    const auto inputBlockSize = static_cast<size_t>(BUFFERSIZE * nChannels);
+    const auto outputChannelBufferSize = static_cast<size_t>(1 + std::ceil(BUFFERSIZE * static_cast<double>(fraction.numerator) / static_cast<double>(fraction.denominator)));
+    const auto outputBlockSize = static_cast<size_t>(nChannels * (1 + outputChannelBufferSize));
 
 	// allocate buffers:
 	std::vector<FloatType> inputBlock(inputBlockSize, 0);		// input buffer for storing interleaved samples from input file
@@ -434,7 +434,7 @@ bool convert(ConversionInfo& ci)
 		outputChannelBuffers.emplace_back(std::vector<FloatType>(outputChannelBufferSize, 0));
 	}
 
-	int inputFileFormat = infile.format();
+    const int inputFileFormat = infile.format();
 	if (inputFileFormat != DFF_FORMAT && inputFileFormat != DSF_FORMAT) { // this block only relevant to libsndfile ...
 		// detect if input format is a floating-point format:
 		bool bFloat = false;
@@ -455,10 +455,13 @@ bool convert(ConversionInfo& ci)
 			}
 		}
 
-		if (bFloat)
+        if (bFloat) {
 			std::cout << " (float)";
-		if (bDouble)
+        }
+
+        if (bDouble) {
 			std::cout << " (double precision)";
+        }
 
 		std::cout << std::endl;
 	}
@@ -500,7 +503,7 @@ bool convert(ConversionInfo& ci)
 	}
 
 	if (ci.bNormalize) { // echo Normalization settings to user
-		auto prec = std::cout.precision();
+        const auto prec = std::cout.precision();
 		std::cout << "Normalizing to " << std::setprecision(2) << ci.limit << std::endl;
 		std::cout.precision(prec);
 	}
@@ -508,7 +511,7 @@ bool convert(ConversionInfo& ci)
 	// echo filter settings to user:
 	double targetNyquist = std::min(ci.inputSampleRate, ci.outputSampleRate) / 2.0;
 	double ft = (ci.lpfCutoff / 100.0) * targetNyquist;
-	auto prec = std::cout.precision();
+    const auto prec = std::cout.precision();
 	std::cout << "LPF transition frequency: " << std::fixed << std::setprecision(2) << ft << " Hz (" << 100 * ft / targetNyquist << " %)" << std::endl;
 	std::cout.precision(prec);
 	if (ci.bMinPhase) {
@@ -611,7 +614,7 @@ bool convert(ConversionInfo& ci)
 		gain *= ditherCompensation;
 	}
 
-	int groupDelay = static_cast<int>(converters[0].getGroupDelay());
+    const int groupDelay = static_cast<int>(converters[0].getGroupDelay());
 
 	FloatType peakOutputSample;
 	bool bClippingDetected;
@@ -731,13 +734,13 @@ bool convert(ConversionInfo& ci)
 		} // ends opening of temp file
 
 		// echo conversion mode to user (multi-stage/single-stage, multi-threaded/single-threaded)
-		std::string stageness(ci.bMultiStage ? "multi-stage" : "single-stage");
-		std::string threadedness(ci.bMultiThreaded ? ", multi-threaded" : "");
+        const std::string stageness(ci.bMultiStage ? "multi-stage" : "single-stage");
+        const std::string threadedness(ci.bMultiThreaded ? ", multi-threaded" : "");
 		std::cout << "Converting (" << stageness << threadedness << ") ..." << std::endl;
 
 		peakOutputSample = 0.0;
 		totalSamplesRead = 0;
-		sf_count_t incrementalProgressThreshold = (ci.progressUpdates > 0 ) ? inputSampleCount / ci.progressUpdates : inputSampleCount + 1;
+        const sf_count_t incrementalProgressThreshold = (ci.progressUpdates > 0 ) ? inputSampleCount / ci.progressUpdates : inputSampleCount + 1;
 		sf_count_t nextProgressThreshold = incrementalProgressThreshold;
 
 		int outStartOffset = std::min(groupDelay * nChannels, static_cast<int>(outputBlockSize) - nChannels);
@@ -771,7 +774,7 @@ bool convert(ConversionInfo& ci)
 			outputChain.add(fadeEffect);
 		}
 
-		bool hasOutputFX = !outputChain.empty();
+        const bool hasOutputFX = !outputChain.empty();
 		// ---
 
 		do { // central conversion loop (the heart of the matter ...)
@@ -793,7 +796,6 @@ bool convert(ConversionInfo& ci)
 				size_t outBlockindex;
 				FloatType peak;
 			};
-
 
 			std::vector<std::future<Result>> results(nChannels);
 			ctpl::thread_pool threadPool(nChannels);
@@ -889,7 +891,7 @@ bool convert(ConversionInfo& ci)
 				FloatType gainAdjustment = static_cast<FloatType>(clippingTrim) * ci.limit / peakOutputSample;
 				gain *= gainAdjustment;
 
-				// echo gain adjustment to user - use slightly differnt message if using temp file:
+                // echo gain adjustment to user - use slightly different message if using temp file:
 				if (ci.bTmpFile) {
 					std::cout << "Adjusting gain by " << 20 * log10(gainAdjustment) << " dB" << std::endl;
 				}
@@ -1024,17 +1026,17 @@ SndfileHandle* getTempFile(int inputFileFormat, int nChannels, const ConversionI
 
 	if (pathLen > MAX_PATH || pathLen == 0)
 		std::cerr << "Error: Could not determine temp path for temp file" << std::endl;
-	else {
-		if (GetTempFileName(_tmpPathname, TEXT("ReS"), 0, _tmpFilename) == 0)
-			std::cerr << "Error: Couldn't generate temp file name" << std::endl;
-		else {
-			tmpFileError = false;
-			std::wstring_convert<std::codecvt_utf8<wchar_t>> wchar2utf8;
-			tmpFilename = wchar2utf8.to_bytes(_tmpFilename);
-			if (ci.bShowTempFile) std::cout << "Temp Filename: " << tmpFilename << std::endl;
-			tmpSndfileHandle = new SndfileHandle(tmpFilename, SFM_RDWR, tmpFileFormat, nChannels, ci.outputSampleRate); // open using filename
-		}
-	}
+    else {
+        if (GetTempFileName(_tmpPathname, TEXT("ReS"), 0, _tmpFilename) == 0) {
+            std::cerr << "Error: Couldn't generate temp file name" << std::endl;
+        } else {
+            tmpFileError = false;
+            std::wstring_convert<std::codecvt_utf8<wchar_t>> wchar2utf8;
+            tmpFilename = wchar2utf8.to_bytes(_tmpFilename);
+            if (ci.bShowTempFile) std::cout << "Temp Filename: " << tmpFilename << std::endl;
+            tmpSndfileHandle = new SndfileHandle(tmpFilename, SFM_RDWR, tmpFileFormat, nChannels, ci.outputSampleRate); // open using filename
+        }
+    }
 
 #elif defined (TEMPFILE_OPEN_METHOD_STD_TMPFILE)
 	FILE* f = std::tmpfile();
@@ -1180,7 +1182,7 @@ void showDitherProfiles() {
 }
 
 int getSfBytesPerSample(int format) {
-	int subformat = format & SF_FORMAT_SUBMASK;
+    const int subformat = format & SF_FORMAT_SUBMASK;
 	switch (subformat) {
 	case SF_FORMAT_PCM_S8:
 		return 1;
