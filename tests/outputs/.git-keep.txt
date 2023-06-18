@@ -1,2 +1,0 @@
-# converter test outputs go in this folder
-# (keep this file to maintain directory structure, since git won't replicate empty directories)

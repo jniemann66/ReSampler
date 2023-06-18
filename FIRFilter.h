@@ -332,7 +332,7 @@ namespace ReSampler {
 		int length;
 		int paddedLength{};
 
-		FloatType* signal; // Double-length signal buffer, to facilitate fast emulation of a circular buffe
+        FloatType* signal; // Double-length signal buffer, to facilitate fast emulation of a circular buffer
 		int currentIndex;
 		int lastPut;
 		int numVecElements{};

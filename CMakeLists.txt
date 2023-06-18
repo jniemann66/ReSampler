@@ -1,7 +1,7 @@
 project(ReSampler C CXX)
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.8)
 find_package(Threads REQUIRED)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 if(ANDROID)
     set(BUILD_SHARED_LIBS_SAVED "${BUILD_SHARED_LIBS}")
@@ -125,6 +125,7 @@ else()
             endif()
 
         else()
+            message(STATUS "mingw dll location is here: ${MINGW_PREFIX}/bin")
             if(CMAKE_BUILD_TYPE STREQUAL "ReleaseQuadmath")
                 set(CMAKE_CXX_EXTENSIONS TRUE) # -std=gnu++11 instead of -std=c++11
                 message(STATUS "Linking with Quadmath library")
