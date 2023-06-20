@@ -15,7 +15,7 @@ then
     #Windows ...
     resampler_path="ReSampler.exe"
 else
-    resampler_path=../ReSampler
+    resampler_path="ReSampler"
 fi
 
 # clear old outputs:

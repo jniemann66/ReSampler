@@ -1,22 +1,23 @@
 #!/usr/bin/env bash
 
+# note: ensure ReSampler in your PATH
+resampler_path=ReSampler
+
+# specify folder locations
 input_path=./inputs
 output_path=./outputs
 
-function tolower(){
-    echo $1 | sed "y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/"
-}
-
-os=`tolower $OSTYPE`
-
-# set converter path according to OS:
-if [ $os == 'cygwin' ] || [ $os == 'msys' ]
-then 
-    #Windows ...
-    resampler_path=ReSampler.exe
-else
-    resampler_path=../ReSampler
-fi
+# do specific things according to OS (if neccessary):
+# function tolower(){
+#     echo $1 | sed "y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/"
+# }
+# os=`tolower $OSTYPE`
+# if [ $os == 'cygwin' ] || [ $os == 'msys' ]
+# then
+#     echo windows
+# else
+#     echo not-windows
+# fi
 
 # clear old outputs:
 rm $output_path/*.*
