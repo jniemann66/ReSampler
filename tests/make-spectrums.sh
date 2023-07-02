@@ -10,20 +10,8 @@ numThreads=4
 # Windows dependencies: libcairo-2.dll libpng12-0.dll libsndfile-1.dll libfftw3-3.dll
 # Ubuntu: sudo apt-get install sndfile-tools
 
-function tolower(){
-    echo $1 | sed "y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/"
-}
-
-os=`tolower $OSTYPE`
-
-# set spectrogram path according to OS:
-if [ $os == 'cygwin' ] || [ $os == 'msys' ]
-then 
-    spectrogram_tool="sndspec"
-else
-    #*nix ...
-    spectrogram_tool="sndspec"
-fi
+# note: ensure sndspec or spectrogram (depending on which one you use) is in your PATH
+spectrogram_tool="sndspec"
 
 echo $(tput setaf 2)cleaning ./spectrums folder ...$(tput setaf 7)
 rm ./spectrums/*.*
@@ -35,6 +23,7 @@ then
     #----------#
     #  series  #
     #----------#
+    
     # sndspec.exe c:\Tests\impulse.wav --spectrum -t 0.0 1.0 -W rectangular -w 3840 -h 2160
     find ./outputs -type f ! -name '*.png' ! -name '*.txt' -exec $spectrogram_tool --dyn-range=190 '{}' 1200 960 '{}'.png \;
     

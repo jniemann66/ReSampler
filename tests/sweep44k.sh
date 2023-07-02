@@ -84,6 +84,9 @@ $resampler_path -i $input_path/44khz_sweep-3dBFS_32f.wav -o $output_path/44khz_s
 $resampler_path -i $input_path/44khz_sweep-3dBFS_32f.wav -o $output_path/44khz_sweep-3dBFS_16-to176k-dither.wav -r 176400 -b 16 --dither --seed 666
 $resampler_path -i $input_path/44khz_sweep-3dBFS_32f.wav -o $output_path/44khz_sweep-3dBFS_16-to192k-dither.wav -r 192000 -b 16 --dither --seed 666 --mt
 
+# make spectrograms
+./make-spectrograms.sh
+
 # check files against last results:
 md5sum -c checklist.chk > results.txt
 

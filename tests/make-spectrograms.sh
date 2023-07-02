@@ -10,23 +10,8 @@ numThreads=4
 # Windows dependencies: libcairo-2.dll libpng12-0.dll libsndfile-1.dll libfftw3-3.dll
 # Ubuntu: sudo apt-get install sndfile-tools
 
-function tolower(){
-    echo $1 | sed "y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/"
-}
-
-os=`tolower $OSTYPE`
-
-# set spectrogram path according to OS:
-if [ $os == 'cygwin' ] || [ $os == 'msys' ]
-then 
-    #Windows ...
-    #spectrogram_tool="spectrogram"
-    spectrogram_tool="sndspec"
-else
-    #*nix ...
-    spectrogram_tool="sndspec"
-    #spectrogram_tool="sndfile-spectrogram"
-fi
+# note: ensure sndspec or spectrogram (depending on which one you use) is in your PATH
+spectrogram_tool="sndspec"
 
 echo $(tput setaf 2)cleaning ./spectrograms folder ...$(tput setaf 7)
 rm ./spectrograms/*.*
