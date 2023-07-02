@@ -110,6 +110,9 @@ $resampler_path -i $input_path/guitar-mono.flac -o $output_path/guitar-sds.sds -
 $resampler_path -i $input_path/guitar-mono.flac -o $output_path/guitar-wve.wve -r 48000
 $resampler_path -i $input_path/guitar-mono.flac -o $output_path/guitar-xi.xi -r 48000
 
+# make spectrograms
+./make-spectrograms.sh
+
 # check files against last results:
 md5sum -c checklist.chk > results.txt
 
