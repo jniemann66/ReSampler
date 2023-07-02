@@ -84,6 +84,8 @@ tests/outputs/*
 !tests/outputs/.git-keep.txt
 tests/spectrograms/*
 !tests/spectrograms/.git-keep.txt
+tests/spectrums/*
+!tests/spectrums/.git-keep.txt
 tests/checklist.chk
 tests/results.txt
 
