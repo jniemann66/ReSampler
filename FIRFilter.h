@@ -894,9 +894,12 @@ namespace ReSampler {
 
 	// dumpFilter() - utility function for displaying filter coefficients:
 	template<typename FloatType> void dumpFilter(const FloatType* Filter, int Length) {
+		const auto default_precision {std::cout.precision()};
+		std::cout << std::setprecision(std::numeric_limits<double>::digits10 + 1);
 		for (int i = 0; i < Length; ++i) {
 			std::cout << Filter[i] << std::endl;
 		}
+		std::cout << std::setprecision(default_precision);
 	}
 
 	inline void dumpComplexVector(const std::vector<std::complex<double>>& v)

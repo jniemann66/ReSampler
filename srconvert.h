@@ -318,6 +318,8 @@ private:
 			// make the filter coefficients
 			std::vector<FloatType> filterTaps = makeFilterCoefficients<FloatType>(stageCi, fractions[i]);
 
+			// dumpFilter(filterTaps.data(), filterTaps.size());
+
 			// make the filter
 			FIRFilter<FloatType> firFilter(filterTaps.data(), static_cast<int>(filterTaps.size()));
 
