@@ -1,7 +1,10 @@
 project(ReSampler C CXX)
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.11)
 find_package(Threads REQUIRED)
 set(CMAKE_CXX_STANDARD 17)
+
+
+add_compile_definitions(COMPILER_ID="${CMAKE_CXX_COMPILER_ID}" COMPILER_VERSION="${CMAKE_CXX_COMPILER_VERSION}")
 
 if(ANDROID)
     set(BUILD_SHARED_LIBS_SAVED "${BUILD_SHARED_LIBS}")
@@ -45,9 +48,6 @@ if(ANDROID)
 else()
 
     if(NOT CMAKE_CONFIGURATION_TYPES)
-
-
-
         # single-config build (build type decided by CMAKE_BUILD_TYPE )
 
         # for single-config builds, add additional configurations

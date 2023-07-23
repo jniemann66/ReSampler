@@ -21,6 +21,8 @@
 #include "stereoimager.h"
 #include "fadeeffect.h"
 #include "effectchain.h"
+#include "dsf.h"
+#include "dff.h"
 
 #include <cstdio>
 #include <string>
@@ -1389,7 +1391,13 @@ bool showBuildVersion() {
 	return true;
 }
 
+
 void showCompiler() {
+
+#if defined(COMPILER_ID) && defined(COMPILER_VERSION)
+	std::cout << COMPILER_ID << " " << COMPILER_VERSION << std::endl;
+#else
+
 	// https://sourceforge.net/p/predef/wiki/Compilers/
 #if defined (__clang__)
 	std::cout << "Clang " << __clang_major__ << "."
@@ -1410,6 +1418,9 @@ void showCompiler() {
 #else
 	std::cout << "unknown" << std::endl;
 #endif
+
+#endif
+
 }
 
 

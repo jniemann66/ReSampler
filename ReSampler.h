@@ -24,12 +24,9 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 
-#include "osspecific.h"
 #include "sndfile.h"
 #include "sndfile.hh"
 #include "conversioninfo.h"
-#include "dsf.h"
-#include "dff.h"
 
 #include <type_traits>
 #include <vector>
