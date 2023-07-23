@@ -8,7 +8,7 @@ if [[ -z "$1" ]]; then
 fi
 
 dest=$1
-libsndfile_dll=../ReSampler/libsndfile/bin/libsndfile-1.dll
+libsndfile_dll=../ReSampler/libsndfile-1.2.0-win64/bin/sndfile.dll
 libfftw_dll=../ReSampler/fftw64/libfftw3-3.dll
 
 echo "copying c++ runtime dlls from ${MINGW_PREFIX}/bin"

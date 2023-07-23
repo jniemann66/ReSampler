@@ -46,6 +46,8 @@ else()
 
     if(NOT CMAKE_CONFIGURATION_TYPES)
 
+
+
         # single-config build (build type decided by CMAKE_BUILD_TYPE )
 
         # for single-config builds, add additional configurations
@@ -92,24 +94,27 @@ else()
 
     if (WIN32)
 
-        find_library(SNDFILE_LIBRARY NAMES libsndfile-1 libsndfile HINTS ${PROJECT_SOURCE_DIR}/libsndfile/lib)
         message(STATUS "libsndfile library location: " ${SNDFILE_LIBRARY})
 
         if(CMAKE_SIZEOF_VOID_P EQUAL 4)
             message(STATUS "Windows 32-bit")
-            include_directories(libsndfile/include fftw32)
-            link_directories(libsndfile32/lib fftw32)
+            set (SNDFILE_DIR libsndfile-1.2.0-win32)
+            set (FFTW_DIR fftw32)
         else()
             message(STATUS "Windows 64-bit")
-            include_directories(libsndfile/include fftw64)
-            link_directories(libsndfile/lib fftw64)
+            set (SNDFILE_DIR libsndfile-1.2.0-win64)
+            set (FFTW_DIR fftw64)
         endif()
+
+        include_directories(${SNDFILE_DIR}/include ${FFTW_DIR})
+        link_directories(${SNDFILE_DIR}/lib ${FFTW_DIR})
+        find_library(SNDFILE_LIBRARY NAMES sndfile HINTS ${SNDFILE_DIR}/lib)
 
         add_library(ReSamplerLib ${SOURCE_FILES})
 
         if(MSVC)
             message(STATUS "Visual Studio")
-            target_link_libraries(ReSamplerLib libsndfile-1.lib libfftw3-3.lib ${CMAKE_THREAD_LIBS_INIT})
+            target_link_libraries(ReSamplerLib libsndfile.lib libfftw3-3.lib ${CMAKE_THREAD_LIBS_INIT})
 
             if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
                 # create additional 64-bit config: ReleaseAVX
