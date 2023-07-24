@@ -123,20 +123,15 @@ bool determineBestBitFormat(std::string& bitFormat, const ConversionInfo& ci)
 
 	if (inFileExt == "dsf") {
 		dsfInput = true;
-	}
-
-	else if (inFileExt == "dff") {
+	} else if (inFileExt == "dff") {
 		dffInput = true;
 	}
 
 	else { // libsndfile-openable file
 
-		if (ci.bRawInput)
-		{
+		if (ci.bRawInput) {
 			inFileFormat = SF_FORMAT_RAW | subFormats.at(ci.rawInputBitFormat);
-		}
-		else
-		{
+		} else {
 			// Inspect input file for format:
 			SndfileHandle infile(ci.inputFilename, SFM_READ);
 			inFileFormat = infile.format();
@@ -176,9 +171,7 @@ bool determineBestBitFormat(std::string& bitFormat, const ConversionInfo& ci)
 		return true;
 	}
 
-	SF_FORMAT_INFO formatinfo;
-
-	if(getMajorFormatFromFileExt(&formatinfo, outFileExt)) {
+	if(SF_FORMAT_INFO formatinfo; getMajorFormatFromFileExt(&formatinfo, outFileExt)) {
 		SF_INFO sfinfo;
 		memset(&sfinfo, 0, sizeof(sfinfo));
 		sfinfo.channels = 1;
@@ -193,27 +186,6 @@ bool determineBestBitFormat(std::string& bitFormat, const ConversionInfo& ci)
 		}
 	}
 
-//	int major_count;
-//	memset(&formatinfo, 0, sizeof(formatinfo));
-//	sf_command(nullptr, SFC_GET_FORMAT_MAJOR_COUNT, &major_count, sizeof(int));
-
-
-
-
-//	// determine if inFile's subformat is valid for outFile:
-//	for (int m = 0; m < major_count; m++)
-//	{
-//		formatinfo.format = m;
-//		sf_command(nullptr, SFC_GET_FORMAT_MAJOR, &formatinfo, sizeof(formatinfo));
-
-//		if (stricmp(formatinfo.extension, outFileExt.c_str()) == 0) { // match between format number m and outfile's file extension
-//			format = formatinfo.format | (inFileFormat & SF_FORMAT_SUBMASK); // combine outfile's major format with infile's subformat
-
-//			// Check if format / subformat combination is valid:
-
-//			break;
-//		}
-//	}
 	return true;
 }
 
@@ -282,8 +254,7 @@ int determineOutputFormat(const std::string& outFileExt, const std::string& bitF
 // listSubFormats() - lists all valid subformats for a given file extension (without "." or "*."):
 void listSubFormats(const std::string& f)
 {
-	SF_FORMAT_INFO info;
-	if (getMajorFormatFromFileExt(&info, f)) {
+	if (SF_FORMAT_INFO info; getMajorFormatFromFileExt(&info, f)) {
 		SF_INFO sfinfo;
 		memset(&sfinfo, 0, sizeof(sfinfo));
 		sfinfo.channels = 1;
@@ -294,8 +265,7 @@ void listSubFormats(const std::string& f)
 			if (sf_format_check(&sfinfo))
 				std::cout << subformat.first << std::endl;
 		}
-	}
-	else {
+	} else {
 		std::cout << "File extension " << f << " unknown" << std::endl;
 	}
 }
