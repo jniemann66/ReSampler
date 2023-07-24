@@ -124,6 +124,7 @@ bool determineBestBitFormat(std::string& bitFormat, const ConversionInfo& ci)
 	if (inFileExt == "dsf") {
 		dsfInput = true;
 	}
+
 	else if (inFileExt == "dff") {
 		dffInput = true;
 	}
@@ -158,7 +159,7 @@ bool determineBestBitFormat(std::string& bitFormat, const ConversionInfo& ci)
 		// retrieve infile's TRUE extension (from the file contents), and if retrieval is successful, override extension derived from filename:
 		SF_FORMAT_INFO infileFormatInfo;
 		infileFormatInfo.format = inFileFormat & SF_FORMAT_TYPEMASK;
-		if (sf_command(nullptr, SFC_GET_FORMAT_INFO, &infileFormatInfo, sizeof(infileFormatInfo)) == 0) {
+		if (sf_command(nullptr, SFC_GET_FORMAT_INFO, &infileFormatInfo, sizeof(SF_FORMAT_INFO)) == 0) {
 			inFileExt = std::string(infileFormatInfo.extension);
 		}
 	}
@@ -175,65 +176,86 @@ bool determineBestBitFormat(std::string& bitFormat, const ConversionInfo& ci)
 		return true;
 	}
 
-	// get total number of major formats:
 	SF_FORMAT_INFO formatinfo;
-	int format;
-	int major_count;
-	memset(&formatinfo, 0, sizeof(formatinfo));
-	sf_command(nullptr, SFC_GET_FORMAT_MAJOR_COUNT, &major_count, sizeof(int));
 
-	// determine if inFile's subformat is valid for outFile:
-	for (int m = 0; m < major_count; m++)
-	{
-		formatinfo.format = m;
-		sf_command(nullptr, SFC_GET_FORMAT_MAJOR, &formatinfo, sizeof(formatinfo));
+	if(getMajorFormatFromFileExt(&formatinfo, outFileExt)) {
+		SF_INFO sfinfo;
+		memset(&sfinfo, 0, sizeof(sfinfo));
+		sfinfo.channels = 1;
+		sfinfo.format = formatinfo.format;
 
-		if (stricmp(formatinfo.extension, outFileExt.c_str()) == 0) { // match between format number m and outfile's file extension
-			format = formatinfo.format | (inFileFormat & SF_FORMAT_SUBMASK); // combine outfile's major format with infile's subformat
-
-			// Check if format / subformat combination is valid:
-			SF_INFO sfinfo;
-			memset(&sfinfo, 0, sizeof(sfinfo));
-			sfinfo.channels = 1;
-			sfinfo.format = format;
-
-			if (sf_format_check(&sfinfo)) { // Match: infile's subformat is valid for outfile's format
-				break;
-			}
-
+		if (!sf_format_check(&sfinfo)) {
 			// infile's subformat is not valid for outfile's format; use outfile's default subformat
 			std::cout << "Output file format " << outFileExt << " and subformat " << bitFormat << " combination not valid ... ";
 			bitFormat.clear();
 			bitFormat = defaultSubFormats.find(outFileExt)->second;
 			std::cout << "defaulting to " << bitFormat << std::endl;
-			break;
-
 		}
 	}
+
+//	int major_count;
+//	memset(&formatinfo, 0, sizeof(formatinfo));
+//	sf_command(nullptr, SFC_GET_FORMAT_MAJOR_COUNT, &major_count, sizeof(int));
+
+
+
+
+//	// determine if inFile's subformat is valid for outFile:
+//	for (int m = 0; m < major_count; m++)
+//	{
+//		formatinfo.format = m;
+//		sf_command(nullptr, SFC_GET_FORMAT_MAJOR, &formatinfo, sizeof(formatinfo));
+
+//		if (stricmp(formatinfo.extension, outFileExt.c_str()) == 0) { // match between format number m and outfile's file extension
+//			format = formatinfo.format | (inFileFormat & SF_FORMAT_SUBMASK); // combine outfile's major format with infile's subformat
+
+//			// Check if format / subformat combination is valid:
+
+//			break;
+//		}
+//	}
 	return true;
 }
+
+bool getMajorFormatFromFileExt(SF_FORMAT_INFO *info, const std::string& ext)
+{
+	bool found = false;
+	if(info != nullptr) {
+
+		static const std::map<std::string, std::string> fileExtMap
+		{
+			{"mp3", "m1a"},
+			{"mp2", "m1a"}
+		};
+
+		const auto it = fileExtMap.find(ext);
+		const std::string _ext = (it == fileExtMap.end() ? ext : it->second);
+
+		int major_count;
+		sf_command(nullptr, SFC_GET_FORMAT_MAJOR_COUNT, &major_count, sizeof(int));
+
+		// Loop through all major formats to find match for outFileExt:
+		for (int m = 0; m < major_count; ++m) {
+			memset(info, 0, sizeof(SF_FORMAT_INFO));
+			info->format = m;
+			sf_command(nullptr, SFC_GET_FORMAT_MAJOR, info, sizeof(SF_FORMAT_INFO));
+			if (stricmp(info->extension, _ext.c_str()) == 0) {
+				found = true;
+				break;
+			}
+		}
+	}
+	return found;
+}
+
 
 // determineOutputFormat() : returns an integer representing a libsndfile output format:
 int determineOutputFormat(const std::string& outFileExt, const std::string& bitFormat)
 {
 	SF_FORMAT_INFO info;
 	int format = 0;
-	int major_count;
-	memset(&info, 0, sizeof(info));
-	sf_command(nullptr, SFC_GET_FORMAT_MAJOR_COUNT, &major_count, sizeof(int));
-	bool bFileExtFound = false;
 
-	// Loop through all major formats to find match for outFileExt:
-	for (int m = 0; m < major_count; ++m) {
-		info.format = m;
-		sf_command(nullptr, SFC_GET_FORMAT_MAJOR, &info, sizeof(info));
-		if (stricmp(info.extension, outFileExt.c_str()) == 0) {
-			bFileExtFound = true;
-			break;
-		}
-	}
-
-	if (bFileExtFound) {
+	if (getMajorFormatFromFileExt(&info, outFileExt)) {
 		// Check if subformat is recognized:
 		auto sf = subFormats.find(bitFormat);
 		if (sf != subFormats.end()) {
@@ -260,23 +282,8 @@ int determineOutputFormat(const std::string& outFileExt, const std::string& bitF
 // listSubFormats() - lists all valid subformats for a given file extension (without "." or "*."):
 void listSubFormats(const std::string& f)
 {
-	SF_FORMAT_INFO	info;
-	int major_count;
-	memset(&info, 0, sizeof(info));
-	sf_command(nullptr, SFC_GET_FORMAT_MAJOR_COUNT, &major_count, sizeof(int));
-	bool bFileExtFound = false;
-
-	// Loop through all major formats to find match for outFileExt:
-	for (int m = 0; m < major_count; ++m) {
-		info.format = m;
-		sf_command(nullptr, SFC_GET_FORMAT_MAJOR, &info, sizeof(info));
-		if (stricmp(info.extension, f.c_str()) == 0) {
-			bFileExtFound = true;
-			break;
-		}
-	}
-
-	if (bFileExtFound) {
+	SF_FORMAT_INFO info;
+	if (getMajorFormatFromFileExt(&info, f)) {
 		SF_INFO sfinfo;
 		memset(&sfinfo, 0, sizeof(sfinfo));
 		sfinfo.channels = 1;
@@ -1488,23 +1495,19 @@ int runCommand(int argc, char** argv) {
 
 	if (ci.csvOutput) {
 		std::cout << "Outputting to csv format" << std::endl;
-	}
-
-	else {
+	} else {
 		if (!ci.outBitFormat.empty()) {  // new output bit format requested
 			ci.outputFormat = determineOutputFormat(outFileExt, ci.outBitFormat);
 			if (ci.outputFormat) {
 				std::cout << "Changing output bit format to " << ci.outBitFormat << std::endl;
-			}
-			else { // user-supplied bit format not valid; try choosing appropriate format
+			} else { // user-supplied bit format not valid; try choosing appropriate format
 				std::string outBitFormat;
 				determineBestBitFormat(outBitFormat, ci);
 				ci.outputFormat = determineOutputFormat(outFileExt, outBitFormat);
 				if (ci.outputFormat) {
 					ci.outBitFormat = outBitFormat;
 					std::cout << "Changing output bit format to " << ci.outBitFormat << std::endl;
-				}
-				else {
+				} else {
 					std::cout << "Warning: NOT Changing output file bit format !" << std::endl;
 					ci.outputFormat = 0; // back where it started
 				}

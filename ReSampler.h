@@ -87,60 +87,64 @@ const int maxClippingProtectionAttempts = 3;
 
 // map of commandline subformats to libsndfile subformats:
 const std::map<std::string, int> subFormats = {
-	{ "s8",SF_FORMAT_PCM_S8 },
-	{ "u8",SF_FORMAT_PCM_U8 },
-	{ "8",SF_FORMAT_PCM_U8 },	// signed or unsigned depends on major format of output file eg. wav files unsigned
+	{ "s8", SF_FORMAT_PCM_S8 },
+	{ "u8", SF_FORMAT_PCM_U8 },
+	{ "8", SF_FORMAT_PCM_U8 },	// signed or unsigned depends on major format of output file eg. wav files unsigned
 	{ "16", SF_FORMAT_PCM_16 },
 	{ "24", SF_FORMAT_PCM_24 },
 	{ "32", SF_FORMAT_PCM_32 },
 	{ "32f",SF_FORMAT_FLOAT },
-	{ "64f",SF_FORMAT_DOUBLE },
-	{ "ulaw",SF_FORMAT_ULAW },
-	{ "alaw",SF_FORMAT_ALAW },
-	{ "ima-adpcm",SF_FORMAT_IMA_ADPCM },
-	{ "ms-adpcm",SF_FORMAT_MS_ADPCM },
-	{ "gsm610",SF_FORMAT_GSM610 },
-	{ "vox-adpcm",SF_FORMAT_VOX_ADPCM },
-	{ "g721-32",SF_FORMAT_G721_32 },
-	{ "g723-24",SF_FORMAT_G723_24 },
-	{ "g723-40",SF_FORMAT_G723_40 },
-	{ "dwvw12",SF_FORMAT_DWVW_12 },
-	{ "dwvw16",SF_FORMAT_DWVW_16 },
-	{ "dwvw24",SF_FORMAT_DWVW_24 },
-	{ "dwvwn",SF_FORMAT_DWVW_N },
-	{ "dpcm8",SF_FORMAT_DPCM_8 },
-	{ "dpcm16",SF_FORMAT_DPCM_16 },
-	{ "vorbis",SF_FORMAT_VORBIS },
-	{ "alac16",SF_FORMAT_ALAC_16 },
-	{ "alac20",SF_FORMAT_ALAC_20 },
-	{ "alac24",SF_FORMAT_ALAC_24 },
-	{ "alac32",SF_FORMAT_ALAC_32 }
+	{ "64f", SF_FORMAT_DOUBLE },
+	{ "ulaw", SF_FORMAT_ULAW },
+	{ "alaw", SF_FORMAT_ALAW },
+	{ "ima-adpcm", SF_FORMAT_IMA_ADPCM },
+	{ "ms-adpcm", SF_FORMAT_MS_ADPCM },
+	{ "gsm610", SF_FORMAT_GSM610 },
+	{ "vox-adpcm", SF_FORMAT_VOX_ADPCM },
+	{ "g721-32", SF_FORMAT_G721_32 },
+	{ "g723-24", SF_FORMAT_G723_24 },
+	{ "g723-40", SF_FORMAT_G723_40 },
+	{ "dwvw12", SF_FORMAT_DWVW_12 },
+	{ "dwvw16", SF_FORMAT_DWVW_16 },
+	{ "dwvw24", SF_FORMAT_DWVW_24 },
+	{ "dwvwn", SF_FORMAT_DWVW_N },
+	{ "dpcm8", SF_FORMAT_DPCM_8 },
+	{ "dpcm16", SF_FORMAT_DPCM_16 },
+	{ "vorbis", SF_FORMAT_VORBIS },
+	{ "alac16", SF_FORMAT_ALAC_16 },
+	{ "alac20", SF_FORMAT_ALAC_20 },
+	{ "alac24", SF_FORMAT_ALAC_24 },
+	{ "alac32", SF_FORMAT_ALAC_32 },
+	{ "layer1", SF_FORMAT_MPEG_LAYER_I },
+	{ "layer2", SF_FORMAT_MPEG_LAYER_II },
+	{ "layer3", SF_FORMAT_MPEG_LAYER_III }
 };
 
 // map of default (ie sensible) subformats (usually 16-bit PCM)
 const std::map<std::string, std::string> defaultSubFormats = {
-	{"aiff","16"},
-	{"au","16"},
-	{"avr","16"},
-	{"caf","16"},
-	{"flac","16"},
-	{"htk","16"},
-	{"iff","16"},
-	{"mat","16"},
-	{"mpc","16"},
-	{"oga","vorbis"},
-	{"paf","16"},
-	{"pvf","16"},
-	{"raw","16"},
-	{"rf64","16"},
-	{"sd2","16"},
-	{"sds","16"},
-	{"sf","16"},
-	{"voc","16"},
-	{"w64","16"},
-	{"wav","16"},
-	{"wve","alaw"},
-	{"xi","dpcm16"}
+	{"aiff", "16"},
+	{"au", "16"},
+	{"avr", "16"},
+	{"caf", "16"},
+	{"flac", "16"},
+	{"htk", "16"},
+	{"iff", "16"},
+	{"mat", "16"},
+	{"mpc", "16"},
+	{"oga", "vorbis"},
+	{"paf", "16"},
+	{"pvf", "16"},
+	{"raw", "16"},
+	{"rf64", "16"},
+	{"sd2", "16"},
+	{"sds", "16"},
+	{"sf", "16"},
+	{"voc", "16"},
+	{"w64", "16"},
+	{"wav", "16"},
+	{"wve", "alaw"},
+	{"xi", "dpcm16"},
+	{"mp3", "layer3"}
 };
 
 #define MAX_CART_TAG_TEXT_SIZE 16384
@@ -178,6 +182,7 @@ public:
 	static void callProgressFunc(int percentComplete);
 };
 
+bool getMajorFormatFromFileExt(SF_FORMAT_INFO *info, const std::string& ext);
 bool checkSSE2();
 bool checkAVX();
 bool showBuildVersion();
