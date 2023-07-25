@@ -262,8 +262,9 @@ void listSubFormats(const std::string& f)
 		// loop through all subformats and find which ones are valid for file type:
 		for (auto& subformat : subFormats) {
 			sfinfo.format = (info.format & SF_FORMAT_TYPEMASK) | subformat.second;
-			if (sf_format_check(&sfinfo))
+			if (sf_format_check(&sfinfo)) {
 				std::cout << subformat.first << std::endl;
+			}
 		}
 	} else {
 		std::cout << "File extension " << f << " unknown" << std::endl;
@@ -621,8 +622,7 @@ bool convert(ConversionInfo& ci)
 
 			if (ci.outBitFormat.empty()) { // default = 16-bit, unsigned, integer (decimal)
 				csvFile->setNumBits(16);
-			}
-			else {
+			} else {
 				std::regex rgx("([us]?)(\\d+)([fiox]?)"); // [u|s]<numBits>[f|i|o|x]
 				std::smatch matchResults;
 				std::regex_search(ci.outBitFormat, matchResults, rgx);
