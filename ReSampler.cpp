@@ -757,10 +757,22 @@ bool convert(ConversionInfo& ci)
 		// ---
 
 		do { // central conversion loop (the heart of the matter ...)
+			//---by diablo2049---
+			sf_count_t  lastBlocksize = inputSampleCount - totalSamplesRead;
+			if (lastBlocksize >= sf_count_t(inputBlockSize))
+			{
+				samplesRead = infile.read(inputBlock.data(), inputBlockSize);
+			}
+			else
+			{
+				samplesRead = infile.read(inputBlock.data(), size_t(lastBlocksize));
+			}
+
+			totalSamplesRead += samplesRead;
 
 			// Grab a block of interleaved samples from file:
-			samplesRead = infile.read(inputBlock.data(), inputBlockSize);
-			totalSamplesRead += samplesRead;
+			//samplesRead = infile.read(inputBlock.data(), inputBlockSize);
+			//totalSamplesRead += samplesRead;
 
 			// de-interleave into channel buffers
 			size_t i = 0;
