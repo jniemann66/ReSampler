@@ -80,10 +80,9 @@ const std::string strExtraOptions(
 		"--fade-out <time in seconds>\n"
 		);
 
-const double clippingTrim = 1.0 - (1.0 / (1 << 23));
-const int maxClippingProtectionAttempts = 3;
-
-#define BUFFERSIZE 32768 // buffer size for file reads
+static constexpr size_t BUFFERSIZE = 32768; // buffer size for file reads
+static constexpr double clippingTrim = 1.0 - (1.0 / (1 << 23));
+static constexpr int maxClippingProtectionAttempts = 3;
 
 // map of commandline subformats to libsndfile subformats:
 const std::map<std::string, int> subFormats = {

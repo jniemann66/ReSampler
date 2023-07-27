@@ -398,6 +398,7 @@ bool convert(ConversionInfo& ci)
 	// determine conversion ratio:
 	Fraction fraction = getFractionFromSamplerates(ci.inputSampleRate, ci.outputSampleRate);
 
+
 	// set buffer sizes:
     const auto inputChannelBufferSize = static_cast<size_t>(BUFFERSIZE);
     const auto inputBlockSize = static_cast<size_t>(BUFFERSIZE * nChannels);
@@ -499,7 +500,7 @@ bool convert(ConversionInfo& ci)
 	}
 
 	// echo conversion ratio to user:
-	FloatType resamplingFactor = static_cast<FloatType>(ci.outputSampleRate) / ci.inputSampleRate;
+	const FloatType resamplingFactor = static_cast<FloatType>(ci.outputSampleRate) / ci.inputSampleRate;
 	std::cout << "Conversion ratio: " << resamplingFactor
 			  << " (" << fraction.numerator << ":" << fraction.denominator << ")" << std::endl;
 
@@ -567,12 +568,9 @@ bool convert(ConversionInfo& ci)
 	// make a vector of ditherers (one ditherer for each channel):
 	std::vector<Ditherer<FloatType>> ditherers;
 	ditherers.reserve(static_cast<size_t>(nChannels));
-	auto seed = static_cast<int>(ci.bUseSeed ? ci.seed : time(nullptr));
+	const auto seed = static_cast<int>(ci.bUseSeed ? ci.seed : time(nullptr));
 
 	for (int n = 0; n < nChannels; n++) {
-		// to-do: explore other seed-generation options (remote possibility of overlap)
-		// maybe use a single global RNG ?
-		// or use discard/jump-ahead ... to ensure parallel streams are sufficiently "far away" from each other ?
 		ditherers.emplace_back(outputSignalBits, ci.ditherAmount, ci.bAutoBlankingEnabled, n + seed, static_cast<DitherProfileID>(ci.ditherProfileID));
 	}
 
@@ -595,6 +593,7 @@ bool convert(ConversionInfo& ci)
 	}
 
     const int groupDelay = static_cast<int>(converters[0].getGroupDelay());
+	const auto tailSize = nChannels * std::ceil(std::max<size_t>(0, groupDelay) / resamplingFactor);
 
 	FloatType peakOutputSample;
 	bool bClippingDetected;
@@ -765,7 +764,7 @@ bool convert(ConversionInfo& ci)
 
 			if(samplesRead == 0) {
 				eof = true;
-				samplesRead = nChannels * std::ceil(std::max<size_t>(0, groupDelay) / resamplingFactor);
+				samplesRead = std::min<size_t>(tailSize, inputBlockSize);
 				std::fill_n(inputBlock.begin(), samplesRead, static_cast<FloatType>(0.0));
 			}
 
