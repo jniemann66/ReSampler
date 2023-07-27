@@ -756,15 +756,24 @@ bool convert(ConversionInfo& ci)
         const bool hasOutputFX = !outputChain.empty();
 		// ---
 
+
+		bool eof = false;
 		do { // central conversion loop (the heart of the matter ...)
 
 			// Grab a block of interleaved samples from file:
 			samplesRead = infile.read(inputBlock.data(), inputBlockSize);
+
+			if(samplesRead == 0) {
+				eof = true;
+				samplesRead = nChannels * std::ceil(std::max<size_t>(0, groupDelay) / resamplingFactor);
+				std::fill_n(inputBlock.begin(), samplesRead, static_cast<FloatType>(0.0));
+			}
+
 			totalSamplesRead += samplesRead;
 
 			// de-interleave into channel buffers
 			size_t i = 0;
-			for (int s = 0; s < samplesRead; s += nChannels) {
+			for (size_t s = 0; s < samplesRead; s += nChannels) {
 				for (int ch = 0; ch < nChannels; ++ch) {
 					inputChannelBuffers[ch][i] = inputBlock[s + ch];
 				}
@@ -847,7 +856,7 @@ bool convert(ConversionInfo& ci)
 				nextProgressThreshold += incrementalProgressThreshold;
 			}
 
-		} while (samplesRead > 0); // ends central conversion loop
+		} while (!eof); // ends central conversion loop
 
 		if (ci.bTmpFile) {
 			gain = 1.0; // output file must start with unity gain relative to temp file
@@ -939,6 +948,8 @@ bool convert(ConversionInfo& ci)
 					}
 
 				} while (samplesRead > 0);
+
+
 
 				std::cout << "Done" << std::endl;
 				auto prec = std::cout.precision();
