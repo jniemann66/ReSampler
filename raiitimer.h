@@ -19,7 +19,8 @@
 
 namespace ReSampler {
 
-	class RaiiTimer {
+	class RaiiTimer
+	{
 	public:
 
 		explicit RaiiTimer(double msComparison = 0.0) : msComparison(msComparison) {
@@ -39,10 +40,26 @@ namespace ReSampler {
 			std::cout << "\n" << std::endl;
 		}
 
+
+
 	private:
 		std::chrono::time_point<std::chrono::high_resolution_clock> beginTimer;
 		std::chrono::time_point<std::chrono::high_resolution_clock> endTimer;
 		double msComparison;
+	};
+
+	// utility
+	class TS
+	{
+	public:
+
+		static void elapsedSince(int64_t t) {
+			std::cout << microsecondsSinceEpoch() - t << "μS" << std::endl;
+		}
+
+		static int64_t microsecondsSinceEpoch() {
+			return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+		}
 	};
 
 } // namespace ReSampler

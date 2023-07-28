@@ -598,8 +598,8 @@ bool convert(ConversionInfo& ci)
 	FloatType peakOutputSample;
 	bool bClippingDetected;
 	RaiiTimer timer(inputDuration);
-
 	int clippingProtectionAttempts = 0;
+
 
 	do { // clipping detection loop (repeats if clipping detected AND not using a temp file)
 
@@ -756,6 +756,16 @@ bool convert(ConversionInfo& ci)
 		// ---
 
 
+		// construct thread pool
+		ctpl::thread_pool threadPool(nChannels);
+		struct Result {
+			size_t outBlockindex;
+			FloatType peak;
+		};
+		std::vector<std::future<Result>> results(nChannels);
+
+
+
 		bool eof = false;
 		do { // central conversion loop (the heart of the matter ...)
 
@@ -779,18 +789,11 @@ bool convert(ConversionInfo& ci)
 				++i;
 			}
 
-			struct Result {
-				size_t outBlockindex;
-				FloatType peak;
-			};
-
-			std::vector<std::future<Result>> results(nChannels);
-			ctpl::thread_pool threadPool(nChannels);
 			size_t outputBlockIndex = 0;
 
 			for (int ch = 0; ch < nChannels; ++ch) { // run convert stage for each channel (concurrently)
 
-				auto kernel = [&, ch](int) {
+				auto processingFunc = [&, ch](int) {
 					FloatType* iBuf = inputChannelBuffers[ch].data();
 					FloatType* oBuf = outputChannelBuffers[ch].data();
 					size_t o = 0;
@@ -811,9 +814,9 @@ bool convert(ConversionInfo& ci)
 				};
 
 				if (multiThreaded) {
-					results[ch] = threadPool.push(kernel);
+					results[ch] = threadPool.push(processingFunc);
 				} else {
-					Result res = kernel(0);
+					Result res = processingFunc(0);
 					peakOutputSample = std::max(peakOutputSample, res.peak);
 					outputBlockIndex = res.outBlockindex;
 				}
@@ -859,8 +862,7 @@ bool convert(ConversionInfo& ci)
 
 		if (ci.bTmpFile) {
 			gain = 1.0; // output file must start with unity gain relative to temp file
-		}
-		else {
+		} else {
 			// notify user:
 			std::cout << "Done" << std::endl;
 			auto prec = std::cout.precision();
