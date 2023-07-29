@@ -651,9 +651,7 @@ bool convert(ConversionInfo& ci)
 
 				// todo: precision, other params
 			}
-		}
-
-		else { // libSndFile output
+		} else { // libSndFile output
 
 			try {
 
@@ -755,7 +753,6 @@ bool convert(ConversionInfo& ci)
         const bool hasOutputFX = !outputChain.empty();
 		// ---
 
-
 		// construct thread pool
 		ctpl::thread_pool threadPool(nChannels);
 		struct Result {
@@ -763,8 +760,6 @@ bool convert(ConversionInfo& ci)
 			FloatType peak;
 		};
 		std::vector<std::future<Result>> results(nChannels);
-
-
 
 		bool eof = false;
 		do { // central conversion loop (the heart of the matter ...)
