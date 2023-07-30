@@ -10,7 +10,7 @@
 // ReSampler.cpp : Audio Sample Rate Converter by Judd Niemann.
 
 #include "ReSampler.h"
-#include "csv.h" // to-do: check macOS
+#include "csv.h"
 #include "ctpl/ctpl_stl.h"
 #include "raiitimer.h"
 #include "fraction.h"
@@ -219,7 +219,6 @@ bool getMajorFormatFromFileExt(SF_FORMAT_INFO *info, const std::string& ext)
 	}
 	return found;
 }
-
 
 // determineOutputFormat() : returns an integer representing a libsndfile output format:
 int determineOutputFormat(const std::string& outFileExt, const std::string& bitFormat)
