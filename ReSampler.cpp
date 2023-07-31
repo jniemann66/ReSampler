@@ -196,8 +196,11 @@ bool getMajorFormatFromFileExt(SF_FORMAT_INFO *info, const std::string& ext)
 
 		static const std::map<std::string, std::string> fileExtMap
 		{
+
+#ifdef  ENABLE_MPEG_CAPABILITY
 			{"mp3", "m1a"},
 			{"mp2", "m1a"}
+#endif
 		};
 
 		const auto it = fileExtMap.find(ext);
