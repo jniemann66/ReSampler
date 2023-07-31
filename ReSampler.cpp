@@ -197,6 +197,10 @@ bool getMajorFormatFromFileExt(SF_FORMAT_INFO *info, const std::string& ext)
 		static const std::map<std::string, std::string> fileExtMap
 		{
 
+#ifdef HAVE_MPEG
+			foo;
+#endif
+
 #ifdef  ENABLE_MPEG_CAPABILITY
 			{"mp3", "m1a"},
 			{"mp2", "m1a"}
@@ -242,7 +246,7 @@ int determineOutputFormat(const std::string& outFileExt, const std::string& bitF
 	// Special cases:
 	if (bitFormat == "8") {
 		// user specified 8-bit. Determine whether it must be unsigned or signed, based on major type:
-		// These formats always use unsigned: 8-bit when they use 8-bit: mat rf64 voc w64 wav
+		// These formats always use unsigned 8-bit when they use 8-bit: mat rf64 voc w64 wav
 
 		if ((outFileExt == "mat") || (outFileExt == "rf64") || (outFileExt == "voc") || (outFileExt == "w64") || (outFileExt == "wav"))
 			format = info.format | SF_FORMAT_PCM_U8;
