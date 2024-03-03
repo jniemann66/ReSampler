@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2016 - 2023 Judd Niemann - All Rights Reserved.
+* Copyright (C) 2016 - 2024 Judd Niemann - All Rights Reserved.
 * You may use, distribute and modify this code under the
 * terms of the GNU Lesser General Public License, version 2.1
 *
@@ -39,7 +39,7 @@
 
 namespace ReSampler {
 
-const std::string strVersion("2.1.0");
+const std::string strVersion("2.1.1");
 const std::string strUsage("usage: ReSampler -i <inputfile> [-o <outputfile>] -r <samplerate> [-b <bitformat>] [-n [<normalization factor>]]\n");
 const std::string strExtraOptions(
 		"--help\n"
