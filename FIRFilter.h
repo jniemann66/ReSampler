@@ -24,6 +24,8 @@
 #include <cstdint>
 #include <cassert>
 #include <vector>
+#include <limits>
+
 #include <immintrin.h>
 
 #if defined(__ANDROID__)
