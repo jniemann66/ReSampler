@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2016 - 2024 Judd Niemann - All Rights Reserved.
+* Copyright (C) 2016 - 2026 Judd Niemann - All Rights Reserved.
 * You may use, distribute and modify this code under the
 * terms of the GNU Lesser General Public License, version 2.1
 *

@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2016 - 2024 Judd Niemann - All Rights Reserved.
+* Copyright (C) 2016 - 2026 Judd Niemann - All Rights Reserved.
 * You may use, distribute and modify this code under the
 * terms of the GNU Lesser General Public License, version 2.1
 *
@@ -25,13 +25,15 @@
 
 namespace ReSampler {
 
-enum FilterType {
+enum FilterType
+{
 	bypass,
 	cascadedBiquad,
 	fir
 };
 
-enum NoiseGeneratorType {
+enum NoiseGeneratorType
+{
 	flatTPDF,
 	slopedTPDF,
 	RPDF,
@@ -40,7 +42,8 @@ enum NoiseGeneratorType {
 	legacyTPDF
 };
 
-enum DitherProfileID {
+enum DitherProfileID
+{
 	flat,
 	legacy,
 	flat_f,
@@ -60,7 +63,8 @@ enum DitherProfileID {
 	end
 };
 
-struct DitherProfile {
+struct DitherProfile
+{
 	DitherProfileID id;
 	const char* name;
 	NoiseGeneratorType noiseGeneratorType;
@@ -71,8 +75,8 @@ struct DitherProfile {
 	bool bUseFeedback;
 };
 
-const DitherProfile ditherProfileList[] = {
-
+const DitherProfile ditherProfileList[] =
+{
 	// id, name, noiseGeneratorType, filterType, intendedSampleRate, N, coeffs, bUseFeedback
 
 	{ flat, "flat tpdf", flatTPDF, bypass, 44100, 1, noiseShaperPassThrough, false },
@@ -104,20 +108,19 @@ public:
 	// seed: seed for PRNG
 	// filterID: noise-shaping filter to use
 
-	Ditherer(unsigned int signalBits, FloatType ditherBits, bool bAutoBlankingEnabled, int seed, DitherProfileID ditherProfileID = standard) :
-		seed(seed),
-		Z1(0),
-		masterVolume(1.0),
-		randGenerator(static_cast<unsigned int>(seed)),		// initialize (seed) RNG
-		dist(0, randMax),		// set the range of the random number distribution
-		signalBits(signalBits),
-		ditherBits(ditherBits),
-		selectedDitherProfile(ditherProfileList[ditherProfileID]),
-		gain(1.0),
-		bUseErrorFeedback(ditherProfileList[ditherProfileID].bUseFeedback),
-		bPulseEmitted(false),
-		bAutoBlankingEnabled(bAutoBlankingEnabled)
-
+	Ditherer(unsigned int signalBits, FloatType ditherBits, bool bAutoBlankingEnabled, int seed, DitherProfileID ditherProfileID = standard)
+		: seed(seed),
+		  Z1(0),
+		  masterVolume(1.0),
+		  randGenerator(static_cast<unsigned int>(seed)),		// initialize (seed) RNG
+		  dist(0, randMax),		// set the range of the random number distribution
+		  signalBits(signalBits),
+		  ditherBits(ditherBits),
+		  selectedDitherProfile(ditherProfileList[ditherProfileID]),
+		  gain(1.0),
+		  bUseErrorFeedback(ditherProfileList[ditherProfileID].bUseFeedback),
+		  bPulseEmitted(false),
+		  bAutoBlankingEnabled(bAutoBlankingEnabled)
 	{
 		// general parameters:
 		maxSignalMagnitude = static_cast<FloatType>((1 << (signalBits - 1)) - 1); // note the -1 : match 32767 scaling factor for 16 bit !
@@ -165,31 +168,29 @@ public:
 		{
 			// IIR noise-shaping filter (2 biquads) - flatter response
 			f1.setCoeffs(0.798141839881378,
-				-0.7040563852194521,
-				0.15341541599754416,
-				0.3060312586301247,
-				0.02511886431509577);
+						 -0.7040563852194521,
+						 0.15341541599754416,
+						 0.3060312586301247,
+						 0.02511886431509577);
 
 			f2.setCoeffs(0.5,
-				-0.7215722413008345,
-				0.23235922079486643,
-				-1.5531272249269004,
-				0.7943282347242815);
-		}
-		else
-		{
+						 -0.7215722413008345,
+						 0.23235922079486643,
+						 -1.5531272249269004,
+						 0.7943282347242815);
+		} else {
 			// IIR noise-shaping filter (2 biquads)
 			f1.setCoeffs(0.1872346691747817,
-				-0.1651633303505913,
-				0.03598944852318585,
-				1.2861600144545022,
-				0.49000000000000016);
+						 -0.1651633303505913,
+						 0.03598944852318585,
+						 1.2861600144545022,
+						 0.49000000000000016);
 
 			f2.setCoeffs(0.5,
-				-0.7215722413008345,
-				0.23235922079486643,
-				-1.2511963408503206,
-				0.5328999999999999);
+						 -0.7215722413008345,
+						 0.23235922079486643,
+						 -1.2511963408503206,
+						 0.5328999999999999);
 		}
 
 		// FIR-specific stuff:
@@ -204,8 +205,7 @@ public:
 		// set-up Auto-blanking:
 		if (bAutoBlankingEnabled) {	// initial state: silence
 			ditherScaleFactor = 0.0;
-		}
-		else {	// initial state: dithering
+		} else {	// initial state: dithering
 			ditherScaleFactor = maxDitherScaleFactor;
 		}
 
@@ -216,12 +216,14 @@ public:
 
 	} // Ends Constructor
 
-	void adjustGain(FloatType factor) {
+	void adjustGain(FloatType factor)
+	{
 		gain *= factor;
 		maxDitherScaleFactor = static_cast<FloatType>(gain * pow(2, ditherBits - 1) / maxSignalMagnitude / randMax);
 	}
 
-	void reset() {
+	void reset()
+	{
 		// reset filters
 		f1.reset();
 		f2.reset();
@@ -265,8 +267,8 @@ public:
 //  G2 = masterVolume
 //
 
-FloatType dither(FloatType inSample) {
-
+FloatType dither(FloatType inSample)
+{
 	// Auto-Blanking
 	if (bAutoBlankingEnabled) {
 		if (std::abs(inSample) < autoBlankLevelThreshold) {
@@ -278,8 +280,7 @@ FloatType dither(FloatType inSample) {
 					masterVolume = 0.0; // mute
 				}
 			}
-		}
-		else {
+		} else {
 			zeroCount = 0; // reset
 			ditherScaleFactor = maxDitherScaleFactor; // restore
 			masterVolume = 1.0;
@@ -341,7 +342,8 @@ private:
 
 	// pure flat tpdf generator
 	// calculate two random numbers and subtracts them, yielding a triangular distribution (which is 'fattest' at zero).
-	FloatType noiseGeneratorFlatTPDF() {
+	FloatType noiseGeneratorFlatTPDF()
+	{
 		int a = dist(randGenerator);
 		int b = dist(randGenerator);
 		return static_cast<FloatType>(a - b);
@@ -352,19 +354,24 @@ private:
 	// This yields a first-order 6dB/octave (20dB/decade) highpass magnitude response.
 	// Thus, the resulting noise is violet noise instead of white, which is quite effective for dithering purposes.
 	// It also has the advantage of only calcluating one random number on each iteration, instead of two.
-	FloatType noiseGeneratorSlopedTPDF() {
+	FloatType noiseGeneratorSlopedTPDF()
+	{
 		int newRandom = dist(randGenerator);
 		auto tpdfNoise = static_cast<FloatType>(newRandom - oldRandom);
 		oldRandom = newRandom;
 		return tpdfNoise;
 	}
 
-	FloatType noiseGeneratorRPDF() { // rectangular PDF (single PRNG)
+	// rectangular PDF (single PRNG)
+	FloatType noiseGeneratorRPDF()
+	{
 		static constexpr int halfRand = (randMax + 1) >> 1;
 		return static_cast<FloatType>(halfRand - dist(randGenerator));
 	}
 
-	FloatType noiseGeneratorGPDF() { // Gaussian PDF (n PRNGs)
+	// Gaussian PDF (n PRNGs)
+	FloatType noiseGeneratorGPDF()
+	{
 		// calculate n random numbers and average them
 		static constexpr int halfRand = (randMax + 1) >> 1;
 		const int n = 5;
@@ -375,7 +382,9 @@ private:
 		return static_cast<FloatType>(halfRand - r/n);
 	}
 
-	FloatType noiseGeneratorImpulse() { // impulse - emits a single pulse at the begininng, followed by zeroes (for testing only)
+	// impulse - emits a single pulse at the begininng, followed by zeroes (for testing only)
+	FloatType noiseGeneratorImpulse()
+	{
 		if (!bPulseEmitted) {
 			bPulseEmitted = true;
 			return static_cast<FloatType>(randMax);
@@ -383,7 +392,9 @@ private:
 		return 0.0;
 	}
 
-	FloatType noiseGeneratorLegacy() { // legacy noise generator (from previous version of ReSampler) - applies filter to noise _before_ injection into dither engine
+	// legacy noise generator (from previous version of ReSampler) - applies filter to noise _before_ injection into dither engine
+	FloatType noiseGeneratorLegacy()
+	{
 		int newRandom = dist(randGenerator);
 		auto tpdfNoise = static_cast<FloatType>(newRandom - oldRandom); // sloped TDPF
 		oldRandom = newRandom;
@@ -392,16 +403,19 @@ private:
 
 	// --- Noise-shaping functions ---
 
-	FloatType noiseShaperPassThrough(FloatType x) {
+	FloatType noiseShaperPassThrough(FloatType x)
+	{
 		return x;
 	}
 
-	FloatType noiseShaperCascadedBiquad(FloatType x) {
+	FloatType noiseShaperCascadedBiquad(FloatType x)
+	{
 		return static_cast<FloatType>(f3.filter(f2.filter(f1.filter(x))));
 	}
 
-	FloatType noiseShaperFIR(FloatType x) { // very simple FIR ...
-
+	// very simple FIR ...
+	FloatType noiseShaperFIR(FloatType x)
+	{
 		// put sample at end of buffer:
 		FloatType* historyPtr = &FIRHistory[FIRLength - 1];
 		*historyPtr = x;

@@ -14,7 +14,8 @@ namespace ReSampler {
 //  --flatTPDF  => --flattpdf
 //  --flat-tpdf => --flattpdf
 
-std::string sanitize(const std::string& str) {
+std::string sanitize(const std::string& str)
+{
 	std::string r(str);
 	auto s = static_cast<std::string::iterator::difference_type>(r.find_first_not_of('-')); // get position of first non-hyphen
 	r.erase(std::remove(r.begin() + s, r.end(), '-'), r.end()); // remove all hyphens after the first non-hyphen
@@ -25,7 +26,8 @@ std::string sanitize(const std::string& str) {
 // The following functions are used for fetching commandline parameters:
 // get numeric parameter value:
 template<typename T>
-bool getCmdlineParam(char** begin, char** end, const std::string& option, T& parameter) {
+bool getCmdlineParam(char** begin, char** end, const std::string& option, T& parameter)
+{
 	std::vector<std::string> args(begin, end);
 	bool found = false;
 	for (auto it = args.begin(); it != args.end(); it++) {
@@ -108,15 +110,15 @@ std::string ConversionInfo::toCmdLineArgs() {
 	args.emplace_back("-r");
 	args.push_back(std::to_string(outputSampleRate));
 
-	if(bUseDoublePrecision)
+	if (bUseDoublePrecision)
 		args.emplace_back("--doubleprecision");
 
-	if(bNormalize) {
+	if (bNormalize) {
 		args.emplace_back("-n");
 		args.push_back(std::to_string(normalizeAmount));
 	}
 
-	if(bMinPhase)
+	if (bMinPhase)
 		args.emplace_back("--minphase");
 
 	if (lpfMode == custom) {
@@ -133,14 +135,15 @@ std::string ConversionInfo::toCmdLineArgs() {
 
 	for(auto it = args.begin(); it != args.end(); it++) {
 		result.append(*it);
-		if(it != std::prev(args.end()))
+		if (it != std::prev(args.end()))
 			result.append(" ");
 	}
 
 	return result;
 }
 
-int getDefaultNoiseShape(int sampleRate) {
+int getDefaultNoiseShape(int sampleRate)
+{
 	if (sampleRate <= 44100) {
 		return DitherProfileID::standard;
 	}
@@ -157,8 +160,8 @@ int getDefaultNoiseShape(int sampleRate) {
 // Some commandline options (eg --version) should result in termination, but not error.
 // unacceptable parameters are indicated by setting bBadParams to true
 
-bool ConversionInfo::fromCmdLineArgs(int argc, char** argv) {
-
+bool ConversionInfo::fromCmdLineArgs(int argc, char** argv)
+{
 	// set defaults for EVERYTHING:
 	inputFilename.clear();
 	outputFilename.clear();
@@ -245,14 +248,14 @@ bool ConversionInfo::fromCmdLineArgs(int argc, char** argv) {
 	getCmdlineParam(argv, argv + argc, "--progress-updates", progressUpdates);
 
     bDemodulateIQ = getCmdlineParam(argv, argv + argc, "--demodulateIQ");
-    if(bDemodulateIQ) {
+	if (bDemodulateIQ) {
 		std::string s;
 		getCmdlineParam(argv, argv + argc, "--demodulateIQ", s);
 		std::transform(s.begin(), s.end(), s.begin(), ::toupper); // make case-insensitive (eg "nfm")
         IQModulationType = ModulationType::NFM; // default
-        if(!s.empty()) {
+		if (!s.empty()) {
             auto it = modulationTypeMap.find(s);
-            if(it != modulationTypeMap.end()) {
+			if (it != modulationTypeMap.end()) {
                 IQModulationType = it->second;
             }
         }
@@ -260,35 +263,35 @@ bool ConversionInfo::fromCmdLineArgs(int argc, char** argv) {
 	}
 
     // set default deEmphasis type for given Modulation Type
-    if(IQModulationType == ModulationType::WFM) {
+	if (IQModulationType == ModulationType::WFM) {
         IQDeEmphasisType = DeEmphasis50;
     } else {
         IQDeEmphasisType = NoDeEmphasis;
     }
 
-    if(getCmdlineParam(argv, argv + argc, "--deemphasis")) {
+	if (getCmdlineParam(argv, argv + argc, "--deemphasis")) {
         std::string s;
         getCmdlineParam(argv, argv + argc, "--deemphasis", s);
-        if(!s.empty()) {
+		if (!s.empty()) {
             auto it = deEmphasisTypeMap.find(s);
-            if(it != deEmphasisTypeMap.end()) {
+			if (it != deEmphasisTypeMap.end()) {
                 IQDeEmphasisType = it->second;
             }
         }
     }
 
 	bAdjustStereoWidth = getCmdlineParam(argv, argv + argc, "--stereoWidth");
-	if(bAdjustStereoWidth) {
+	if (bAdjustStereoWidth) {
 		getCmdlineParam(argv, argv + argc, "--stereoWidth", stereoWidth);
 	}
 
 	bFadeIn = getCmdlineParam(argv, argv + argc, "--fade-in");
-	if(bFadeIn) {
+	if (bFadeIn) {
 		getCmdlineParam(argv, argv + argc, "--fade-in", fadeInTime);
 	}
 
     bFadeOut = getCmdlineParam(argv, argv + argc, "--fade-out");
-    if(bFadeOut) {
+	if (bFadeOut) {
         getCmdlineParam(argv, argv + argc, "--fade-out", fadeOutTime);
     }
 
@@ -397,8 +400,7 @@ bool ConversionInfo::fromCmdLineArgs(int argc, char** argv) {
 		if (inputFilename.empty()) {
 			std::cout << "Error: Input filename not specified" << std::endl;
 			bBadParams = true;
-		}
-		else {
+		} else {
 			std::cout << "Output filename not specified" << std::endl;
 			outputFilename = inputFilename;
 			if (outputFilename.find('.') != std::string::npos) {

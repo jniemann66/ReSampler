@@ -50,7 +50,6 @@ else()
     if(NOT CMAKE_CONFIGURATION_TYPES)
         # single-config build (build type decided by CMAKE_BUILD_TYPE )
 
-
         # for single-config builds, add additional configurations
         set (CMAKE_CXX_FLAGS_RELEASEAVX ${CMAKE_CXX_FLAGS_RELEASE_INIT} " -DUSE_AVX -mavx")
         set (CMAKE_CXX_FLAGS_RELEASEQUADMATH ${CMAKE_CXX_FLAGS_RELEASE_INIT} " -DUSE_QUADMATH")
@@ -131,7 +130,6 @@ else()
             endif()
 
         else()
-            message(STATUS "compiler flags: ${CMAKE_CXX_FLAGS_RELEASE_INIT}")
             message(STATUS "mingw dll location is here: ${MINGW_PREFIX}/bin")
             if(CMAKE_BUILD_TYPE STREQUAL "ReleaseQuadmath")
                 set(CMAKE_CXX_EXTENSIONS TRUE) # -std=gnu++11 instead of -std=c++11
@@ -165,20 +163,7 @@ else()
 
     endif()
 
-   # include(CheckIPOSupported)
-   # check_ipo_supported(RESULT iposupported OUTPUT error)
-
     add_executable(ReSampler main.cpp)
-
-#    if(iposupported)
-#        message(STATUS "IPO / LTO enabled")
-#        set_property(TARGET ReSampler PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
-#    else()
-#        message(STATUS "IPO / LTO not supported: <${error}>")
-#    endif()
-
     target_link_libraries(ReSampler ReSamplerLib)
 
 endif()
-
-

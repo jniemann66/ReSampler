@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2016 - 2024 Judd Niemann - All Rights Reserved.
+* Copyright (C) 2016 - 2026 Judd Niemann - All Rights Reserved.
 * You may use, distribute and modify this code under the
 * terms of the GNU Lesser General Public License, version 2.1
 *
@@ -29,15 +29,17 @@ namespace ReSampler {
 static const bool singleStageOnDecimateOnly = false;
 static const bool singleStageOnInterpolateOnly = false;
 
-struct Fraction {
+struct Fraction
+{
 	int numerator;
 	int denominator;
 };
 
 // gcd() - greatest common divisor:
-inline int gcd(int a, int b) {
-	if (a<0) a = -a;
-	if (b<0) b = -b;
+inline int gcd(int a, int b)
+{
+	if (a < 0) a = -a;
+	if (b < 0) b = -b;
 	while (b != 0) {
 		a %= b;
 		if (a == 0) return b;
@@ -60,7 +62,8 @@ inline Fraction getFractionFromSamplerates(int inputRate, int outputRate)
 
 // factorize(n) - returns a vector of prime factors of n
 
-inline std::vector<int> factorize(int n) {
+inline std::vector<int> factorize(int n)
+{
 	std::vector<int> factors;
 	int maxFactor = static_cast<int>(std::sqrt(n));
 
@@ -80,8 +83,8 @@ inline std::vector<int> factorize(int n) {
 // getnFactors() - // given a vector of prime factors of some integer x
 // return a set of possible factorizations of x, each with <= maxFactors factors
 
-inline std::set<std::vector<int>> getnFactors(const std::vector<int> &primes, int maxFactors) {
-
+inline std::set<std::vector<int>> getnFactors(const std::vector<int> &primes, int maxFactors)
+{
 	std::set<std::vector<int>> solutions; // the retval
 	std::vector<int> currentFactors(static_cast<size_t>(maxFactors), 1);
 
@@ -112,7 +115,8 @@ inline std::set<std::vector<int>> getnFactors(const std::vector<int> &primes, in
 // getnFactors() - given an integer, x,
 // return a set of possible factorizations, each with <= maxFactors factors,
 
-inline std::set<std::vector<int>> getnFactors(int x, int maxFactors) {
+inline std::set<std::vector<int>> getnFactors(int x, int maxFactors)
+{
 	std::vector<int> primes = factorize(x);
 	return getnFactors(primes, maxFactors);
 }
@@ -121,7 +125,8 @@ inline std::set<std::vector<int>> getnFactors(int x, int maxFactors) {
 // each consisting of a vector of fractions representing individual conversion stages.
 // may also return an empty result if suitable solution is not possible with given value of maxStages
 
-inline std::vector<std::vector<Fraction>> getConversionStageCandidates(Fraction f, int maxStages) {
+inline std::vector<std::vector<Fraction>> getConversionStageCandidates(Fraction f, int maxStages)
+{
 	auto numeratorPrimes = factorize(f.numerator);
 	auto denominatorPrimes = factorize(f.denominator);
 	int maxPossibleStages = static_cast<int>(std::max(numeratorPrimes.size(), denominatorPrimes.size())); // determines just how many stages can be formed
@@ -168,8 +173,8 @@ inline std::vector<std::vector<Fraction>> getConversionStageCandidates(Fraction 
 // getBestConversionStagesCandidate() : given fraction and maximum number of stages,
 // attempt to algorithmically find best configuration of converter stages.
 
-inline std::vector<Fraction> getBestConversionStagesCandidate(Fraction f, int maxStages) {
-
+inline std::vector<Fraction> getBestConversionStagesCandidate(Fraction f, int maxStages)
+{
 	std::vector<Fraction> fractions; // return value
 	if (maxStages <= 1) {
 		fractions.push_back(f);
@@ -193,8 +198,8 @@ inline std::vector<Fraction> getBestConversionStagesCandidate(Fraction f, int ma
 // getConversionStages() : get converter stages from hardcoded presets,
 // failing that, find converter configuration algorithmically.
 
-inline std::vector<Fraction> getConversionStages(Fraction f, int maxStages) {
-
+inline std::vector<Fraction> getConversionStages(Fraction f, int maxStages)
+{
 	// apply single-stage policies:
 	if (maxStages <= 1) {
 		return std::vector<Fraction> {f}; // single-stage conversion
@@ -237,7 +242,8 @@ inline std::vector<Fraction> getConversionStages(Fraction f, int maxStages) {
 }
 
 // utility functions:
-inline void dumpFractionList(std::vector<Fraction> fractions) {
+inline void dumpFractionList(std::vector<Fraction> fractions)
+{
 	for(auto fractionIt = fractions.begin(); fractionIt != fractions.end(); fractionIt++) {
 		std::cout << fractionIt->numerator << "/" << fractionIt->denominator;
 		if (fractionIt != std::prev(fractions.end())) {
@@ -246,7 +252,8 @@ inline void dumpFractionList(std::vector<Fraction> fractions) {
 	}
 }
 
-inline void dumpConversionStageCandidates(std::vector<std::vector<Fraction>> candidates) {
+inline void dumpConversionStageCandidates(std::vector<std::vector<Fraction>> candidates)
+{
 	for (std::vector<Fraction>& candidate : candidates) {
 		dumpFractionList(candidate);
 		std::cout << "\n";
@@ -254,7 +261,8 @@ inline void dumpConversionStageCandidates(std::vector<std::vector<Fraction>> can
 }
 
 // test functions:
-inline void testConverterStageSelection(int numStages, bool unique = true) {
+inline void testConverterStageSelection(int numStages, bool unique = true)
+{
 	std::vector<int> rates{8000, 11025, 16000, 22050, 32000, 37800, 44056, 44100, 47250, 48000, 50000, 50400, 88200, 96000, 176400, 192000, 352800, 384000, 2822400, 5644800};
 	struct Result {
 		Fraction fraction;
@@ -284,7 +292,7 @@ inline void testConverterStageSelection(int numStages, bool unique = true) {
 		results.assign(u.begin(), u.end()); // convert back to vector again
 	}
 
-	for(auto& d : results) {
+	for (auto& d : results) {
 		double r = static_cast<double>(d.fraction.numerator) / d.fraction.denominator;
 		std::cout << r << " , " << d.fraction.numerator << " , " << d.fraction.denominator << " , " << "\"";
 		dumpFractionList(d.fractionList);

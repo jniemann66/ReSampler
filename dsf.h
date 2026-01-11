@@ -1,5 +1,5 @@
 /* 
-* Copyright (C) 2016 - 2024 Judd Niemann - All Rights Reserved.
+* Copyright (C) 2016 - 2026 Judd Niemann - All Rights Reserved.
 * You may use, distribute and modify this code under the
 * terms of the GNU Lesser General Public License, version 2.1
 *
@@ -28,14 +28,16 @@
 
 namespace ReSampler {
 
-	struct DsfDSDChunk {
+	struct DsfDSDChunk
+	{
 		uint32_t header;	// expected: "DSD "
 		uint64_t length;	// expected: 28
 		uint64_t filesize;
 		uint64_t metadataPtr;
 	};
 
-	enum DsfChannelType {
+	enum DsfChannelType
+	{
 		mono = 1,
 		stereo,
 		ch3,
@@ -45,7 +47,8 @@ namespace ReSampler {
 		ch51
 	};
 
-	struct DsfFmtChunk {
+	struct DsfFmtChunk
+	{
 		uint32_t header;	// expected: "fmt "
 		uint64_t length;	// expected: 52
 		uint32_t version;	// expected: 1
@@ -63,13 +66,15 @@ namespace ReSampler {
 		uint32_t reserved;	// expected: zero
 	};
 
-	struct DsfDataChunk {
+	struct DsfDataChunk
+	{
 		uint32_t header;	// expected: "data"
 		uint64_t length;	// expected: 12 + sample data length
 	};
 	#pragma pack(pop, r1)
 
-	enum DsfOpenMode {
+	enum DsfOpenMode
+	{
 		Dsf_read,
 		Dsf_write
 	};
@@ -89,13 +94,14 @@ namespace ReSampler {
 	public:
 		// Construction / destruction
 
-	#ifdef __clang__
+#ifdef __clang__
 		// see www.open-std.org/jtc1/sc22/wg21/docs/cwg_defects.html#777
-		explicit DsfFile(const std::string& path, int mode = Dsf_read, int ignored1 = 0, int ignored2 = 0, int ignored3 = 0) : path(path), mode(static_cast<DsfOpenMode>(mode))
+		explicit DsfFile(const std::string& path, int mode = Dsf_read, int ignored1 = 0, int ignored2 = 0, int ignored3 = 0)
+			: path(path), mode(static_cast<DsfOpenMode>(mode))
 	#else
 		template<typename... OtherArgs>
 		DsfFile(const std::string& path, int mode = Dsf_read, OtherArgs... ignored) : path(path), mode(static_cast<DsfOpenMode>(mode))
-	#endif
+  #endif
 
 		{
 			assertSizes();
@@ -129,43 +135,53 @@ namespace ReSampler {
 			}
 		}
 
-		~DsfFile() {
-			if(file.is_open())
+		~DsfFile()
+		{
+			if(file.is_open()) {
 				file.close();
+			}
+
 			for (int n = 0; n < 6; ++n) {
 				delete[] channelBuffer[n];
 			}
 		}
 
 		// API:
-		bool error() const {
+		bool error() const
+		{
 			return err;
 		}
 
-		unsigned int channels() const {
+		unsigned int channels() const
+		{
 			return numChannels;
 		}
 
-		unsigned int samplerate() const {
+		unsigned int samplerate() const
+		{
 			return _sampleRate;
 		}
 
-		uint64_t frames() const {
+		uint64_t frames() const
+		{
 			return numFrames;
 		}
 
-		uint64_t samples() const {
+		uint64_t samples() const
+		{
 			return numSamples;
 		}
 
-		int format() const {
+		int format() const
+		{
 			return DSF_FORMAT;
 		}
 
 		// read() : reads count interleaved FloatType samples into buffer
 
 		template<typename FloatType>
-		uint64_t read(FloatType* buffer, uint64_t count) {
+		uint64_t read(FloatType* buffer, uint64_t count)
+		{
 
 			/*
 
@@ -219,8 +235,8 @@ namespace ReSampler {
 		// testRead() : reads the entire file
 		// and confirms number of samples read equals number of samples expected:
 
-		void testRead() {
-
+		void testRead()
+		{
 			const size_t bufSize = 8192;
 
 			float sampleBuffer[bufSize];
@@ -235,7 +251,8 @@ namespace ReSampler {
 			std::cout << "total samples retrieved: " << totalSamplesRead << std::endl;
 		}
 
-		uint64_t seek(uint64_t pos, int whence) {
+		uint64_t seek(uint64_t pos, int whence)
+		{
 			(void)whence; // unused
 			// reset initial conditions:
 			bufferIndex = blockSize; // empty (zero -> full)
@@ -270,7 +287,8 @@ namespace ReSampler {
 		uint64_t endOfData;
 		double samplTbl[256][8];
 
-		void assertSizes() {
+		void assertSizes()
+		{
 			static_assert(sizeof(dsfDSDChunk) == 28, "");
 			static_assert(sizeof(dsfFmtChunk) == 52, "");
 			static_assert(sizeof(dsfDataChunk) == 12, "");
@@ -281,7 +299,9 @@ namespace ReSampler {
 		// Send warning if not.
 		// Return difference between chunk length and expected chunk length
 
-		template<typename T> int checkWarnChunkSize(size_t statedLength, const char* chunkName) {
+		template<typename T>
+		int checkWarnChunkSize(size_t statedLength, const char* chunkName)
+		{
 			if (sizeof(T) != statedLength) {
 				std::cout << "warning: '" << chunkName << "' chunk is " << statedLength << " bytes. (" << sizeof(T) << " bytes expected)" << std::endl;
 			}
@@ -289,13 +309,14 @@ namespace ReSampler {
 		}
 
 		// warnWrongChunk() : inform user that expected chunk is missing
-		void warnWrongChunk(const char* chunkName) {
+		void warnWrongChunk(const char* chunkName)
+		{
 			std::cout << "error: '" << chunkName << "' chunk missing !" << std::endl;
 		}
 
 		// readHeaders() : read and interpret the file header chunks ("DSD", "fmt ", and "data")
-		void readHeaders() {
-
+		void readHeaders()
+		{
 			// read DSD chunk:
 			file.read((char*)&dsfDSDChunk, sizeof(dsfDSDChunk));
 			if (dsfDSDChunk.header != DSF_ID_DSD) {
@@ -355,13 +376,14 @@ namespace ReSampler {
 			endOfData = dsfDSDChunk.length + dsfFmtChunk.length + dsfDataChunk.length;
 
 			assert( // metadata tag either non-existent or at end of data
-				(dsfDSDChunk.metadataPtr == 0) ||
-				(dsfDSDChunk.metadataPtr == endOfData)
-			);
+					(dsfDSDChunk.metadataPtr == 0) ||
+					(dsfDSDChunk.metadataPtr == endOfData)
+					);
 		}
 
 		// readBlocks() : reads blockSize bytes into each channelBuffer for numChannels channels
-		uint32_t readBlocks() {
+		uint32_t readBlocks()
+		{
 			if (file.tellg() >= static_cast<std::istream::pos_type>(endOfData))
 				return 0;
 
@@ -372,7 +394,9 @@ namespace ReSampler {
 		}
 
 		// makeTbl() : translates all possible uint8_t values into sets of 8 floating point sample values.
-		void makeTbl() { // generate sample translation table
+		void makeTbl()
+		{
+			// generate sample translation table
 			for (int i = 0; i < 256; ++i) {
 				for (int j = 0; j < 8; ++j) {
 					int mask = 1 << ((dsfFmtChunk.bitOrder == 8) ? 7 - j : j); // reverse bits if 'bitOrder' == 8

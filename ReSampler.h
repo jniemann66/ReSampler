@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2016 - 2024 Judd Niemann - All Rights Reserved.
+* Copyright (C) 2016 - 2026 Judd Niemann - All Rights Reserved.
 * You may use, distribute and modify this code under the
 * terms of the GNU Lesser General Public License, version 2.1
 *
@@ -35,11 +35,9 @@
 #include <map>
 #include <functional>
 
-#define ENABLE_MPEG_CAPABILITY // requires libsndfile >= 1.1.0
-
 namespace ReSampler {
 
-const std::string strVersion("2.1.1");
+const std::string strVersion("2.1.0");
 const std::string strUsage("usage: ReSampler -i <inputfile> [-o <outputfile>] -r <samplerate> [-b <bitformat>] [-n [<normalization factor>]]\n");
 const std::string strExtraOptions(
 		"--help\n"
@@ -86,9 +84,6 @@ static constexpr size_t BUFFERSIZE = 32768; // buffer size for file reads
 static constexpr double clippingTrim = 1.0 - (1.0 / (1 << 23));
 static constexpr int maxClippingProtectionAttempts = 3;
 
-
-
-
 // map of commandline subformats to libsndfile subformats:
 const std::map<std::string, int> subFormats = {
 	{ "s8", SF_FORMAT_PCM_S8 },
@@ -118,14 +113,10 @@ const std::map<std::string, int> subFormats = {
 	{ "alac16", SF_FORMAT_ALAC_16 },
 	{ "alac20", SF_FORMAT_ALAC_20 },
 	{ "alac24", SF_FORMAT_ALAC_24 },
-	{ "alac32", SF_FORMAT_ALAC_32 }
-
-#ifdef ENABLE_MPEG_CAPABILITY
-	,{ "layer1", SF_FORMAT_MPEG_LAYER_I },
+	{ "alac32", SF_FORMAT_ALAC_32 },
+	{ "layer1", SF_FORMAT_MPEG_LAYER_I },
 	{ "layer2", SF_FORMAT_MPEG_LAYER_II },
 	{ "layer3", SF_FORMAT_MPEG_LAYER_III }
-#endif
-
 };
 
 // map of default (ie sensible) subformats (usually 16-bit PCM)
@@ -151,12 +142,8 @@ const std::map<std::string, std::string> defaultSubFormats = {
 	{"w64", "16"},
 	{"wav", "16"},
 	{"wve", "alaw"},
-	{"xi", "dpcm16"}
-
-#ifdef ENABLE_MPEG_CAPABILITY
-	,{"mp3", "layer3"}
-#endif
-
+	{"xi", "dpcm16"},
+	{"mp3", "layer3"}
 };
 
 #define MAX_CART_TAG_TEXT_SIZE 16384

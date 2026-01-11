@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2016 - 2024 Judd Niemann - All Rights Reserved.
+* Copyright (C) 2016 - 2026 Judd Niemann - All Rights Reserved.
 * You may use, distribute and modify this code under the
 * terms of the GNU Lesser General Public License, version 2.1
 *
@@ -21,12 +21,13 @@
 
 namespace ReSampler {
 
-typedef enum {
+enum LPFMode
+{
 	relaxed,
 	normal,
 	steep,
 	custom
-} LPFMode;
+};
 
 // struct ConversionInfo : structure for holding all the parameters required for a conversion job
 struct ConversionInfo
