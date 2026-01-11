@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2016 - 2023 Judd Niemann - All Rights Reserved.
+* Copyright (C) 2016 - 2026 Judd Niemann - All Rights Reserved.
 * You may use, distribute and modify this code under the
 * terms of the GNU Lesser General Public License, version 2.1
 *
@@ -17,11 +17,11 @@
 #endif
 
 #include <algorithm>
-#include <iostream>
 #include <cassert>
 #include <cstdint>
-#include <string>
 #include <fstream>
+#include <iostream>
+#include <string>
 
 #define DFF_MAX_CHANNELS 6 
 #define DFF_FORMAT 0x00300000 // note: take care to make sure this doesn't clash with future libsndfile formats (unlikely)
@@ -29,31 +29,36 @@
 
 namespace ReSampler {
 
-struct dffChunkHeader {
+struct dffChunkHeader
+{
 	uint32_t ckID; // chunkid
 	uint64_t ckDataSize; // chunk data size, in bytes
 };
 
-struct FormatVersionChunk {
+struct FormatVersionChunk
+{
 	uint32_t ckID; // 'FVER'
 	uint64_t ckDataSize; // 4
 	uint32_t version; // 0x01050000 version 1.5.0.0 DSDIFF
 };
 
-struct SampleRateChunk {
+struct SampleRateChunk
+{
 	uint32_t ckID; // 'FS '
 	uint64_t ckDataSize; // 4
 	uint32_t sampleRate; // sample rate in [Hz]
 };
 
-struct ChannelsChunk {
+struct ChannelsChunk
+{
 	uint32_t ckID; // 'CHNL'
 	uint64_t ckDataSize;
 	uint16_t numChannels; // number of audio channels
 	uint32_t channelID[DFF_MAX_CHANNELS]; // channels ID's
 };
 
-struct CompressionTypeChunk {
+struct CompressionTypeChunk
+{
 	uint32_t ckID; // 'CMPR'
 	uint64_t CkDataSize;
 	uint32_t compressionType; // compression ID code
@@ -61,7 +66,8 @@ struct CompressionTypeChunk {
 	char compressionName[257]; // human readable type name
 };
 
-struct AbsoluteStartTimeChunk {
+struct AbsoluteStartTimeChunk
+{
 	uint32_t ckID; // 'ABSS'
 	uint64_t ckDataSize;
 	uint16_t hours; // hours
@@ -70,13 +76,15 @@ struct AbsoluteStartTimeChunk {
 	uint32_t samples; // samples
 };
 
-struct LoudspeakerConfigurationChunk {
+struct LoudspeakerConfigurationChunk
+{
 	uint32_t ckID; // 'LSCO'
 	uint64_t ckDataSize; // 2
 	uint16_t lsConfig; // loudspeaker configuration
 };
 
-struct PropertyChunk {
+struct PropertyChunk
+{
 	uint32_t ckID; // 'PROP'
 	uint64_t ckDataSize;
 	uint32_t propType; // 'SND '
@@ -87,12 +95,14 @@ struct PropertyChunk {
 	LoudspeakerConfigurationChunk loudspeakerConfigurationChunk;
 };
 
-struct DSDSoundDataHeader {
+struct DSDSoundDataHeader
+{
 	uint32_t ckID; // 'DSD '
 	uint64_t ckDataSize;
 };
 
-struct FormDSDChunk {
+struct FormDSDChunk
+{
 	uint32_t ckID; // 'FRM8'
 	uint64_t ckDataSize; // FORM's data size, in bytes
 	uint32_t formType; // 'DSD '
@@ -126,7 +136,8 @@ struct FormDSDChunk {
 #define CKID_DIAR 0x44494152
 #define CKID_DITI 0x44495449
 
-enum DffOpenMode {
+enum DffOpenMode
+{
 	Dff_read,
 	Dff_write
 };
@@ -140,10 +151,12 @@ public:
 
 #ifdef __clang__
 	// see www.open-std.org/jtc1/sc22/wg21/docs/cwg_defects.html#777
-	explicit DffFile(const std::string& path, int mode = Dff_read, int ignored1 = 0, int ignored2 = 0, int ignored3 = 0) : path(path), mode(static_cast<DffOpenMode>(mode))
+	explicit DffFile(const std::string& path, int mode = Dff_read, int ignored1 = 0, int ignored2 = 0, int ignored3 = 0)
+		: path(path), mode(static_cast<DffOpenMode>(mode))
 #else
 	template <typename... OtherArgs>
-	explicit DffFile(const std::string& path, int mode = Dff_read, OtherArgs... ignored) : path(path), mode(static_cast<DffOpenMode>(mode))
+	explicit DffFile(const std::string& path, int mode = Dff_read, OtherArgs... ignored)
+		: path(path), mode(static_cast<DffOpenMode>(mode))
 #endif
 
 	{
@@ -182,7 +195,8 @@ public:
 		}
 	}
 
-	~DffFile() {
+	~DffFile()
+	{
 		if (file.is_open())
 			file.close();
 
@@ -191,33 +205,39 @@ public:
 
 	// API:
 
-	bool error() const {
+	bool error() const
+	{
 		return err;
 	}
 
-	unsigned int channels() const {
+	unsigned int channels() const
+	{
 		return numChannels;
 	}
 
-	unsigned int samplerate() const {
+	unsigned int samplerate() const
+	{
 		return _sampleRate;
 	}
 
-	uint64_t frames() const {
+	uint64_t frames() const
+	{
 		return numFrames;
 	}
 
-	uint64_t samples() const {
+	uint64_t samples() const
+	{
 		return numSamples;
 	}
 
-	int format() const {
+	int format() const
+	{
 		return DFF_FORMAT;
 	}
 
 	template<typename FloatType>
-	uint64_t read(FloatType* buffer, uint64_t count) {
-
+	uint64_t read(FloatType* buffer, uint64_t count)
+	{
 		/*
 
 		In a dff file,
@@ -260,7 +280,8 @@ public:
 	// testRead() : reads the entire file
 	// and confirms number of samples read equals number of samples expected:
 
-	void testRead() {
+	void testRead()
+	{
 		float sampleBuffer[8192];
 		uint64_t samplesRead = 0;
 		uint64_t totalSamplesRead = 0;
@@ -271,7 +292,8 @@ public:
 		std::cout << "total samples retrieved: " << totalSamplesRead << std::endl;
 	}
 
-	uint64_t seek(uint64_t pos, int whence) {
+	uint64_t seek(uint64_t pos, int whence)
+	{
 		(void)whence; // unused
 		// To-do: allow seeks to positions other than beginning (requires proper calculations)
 		// reset state to initial conditions:
@@ -309,7 +331,8 @@ private:
 	uint64_t startOfData{};
 	double samplTbl[256][8]{};
 
-	void getChunkHeader(dffChunkHeader* chunkHeader) {
+	void getChunkHeader(dffChunkHeader* chunkHeader)
+	{
 		chunkHeader->ckID = bigEndianRead32();
 		chunkHeader->ckDataSize = bigEndianRead64();
 	}
@@ -377,13 +400,15 @@ private:
 	}
 #endif
 
-	uint8_t bigEndianRead8() {
+	uint8_t bigEndianRead8()
+	{
 		uint8_t v;
 		file.read((char*)&v, sizeof(v));
 		return v;
 	}
 
-	uint16_t bigEndianRead16() {
+	uint16_t bigEndianRead16()
+	{
 		uint16_t v;
 		file.read((char*)&v, sizeof(v));
 
@@ -397,7 +422,8 @@ private:
 
 	}
 
-	uint32_t bigEndianRead32() {
+	uint32_t bigEndianRead32()
+	{
 		uint32_t v;
 		file.read((char*)&v, sizeof(v));
 
@@ -411,7 +437,8 @@ private:
 
 	}
 
-	uint64_t bigEndianRead64() {
+	uint64_t bigEndianRead64()
+	{
 		uint64_t v;
 		file.read((char*)&v, sizeof(v));
 
@@ -426,7 +453,8 @@ private:
 	}
 
 	// readPropChunks() : read the sub-chunks of PROP chunk
-	void readPropChunks(int64_t chunkSize) {
+	void readPropChunks(int64_t chunkSize)
+	{
 		int64_t dataRemaining = chunkSize;
 		dffChunkHeader nextChunkHeader;
 		do {
@@ -495,12 +523,14 @@ private:
 		} while (dataRemaining > 0);
 	}
 
-	void readHeaders() {
+	void readHeaders()
+	{
 		formDSDChunk.ckID = bigEndianRead32();
 		if (formDSDChunk.ckID != CKID_FRM8) {
 			err = true;
 			return;
 		}
+
 		formDSDChunk.ckDataSize = bigEndianRead64();
 		formDSDChunk.formType = bigEndianRead32();
 		if (formDSDChunk.formType != CKID_DSD) {
@@ -547,7 +577,8 @@ private:
 		startOfData = static_cast<uint64_t>(file.tellg()); // should be ready to read data stream now ...
 	}
 
-	uint64_t readBlocks() {
+	uint64_t readBlocks()
+	{
 		if (file.eof()) {
 			return 0;
 		}
@@ -560,10 +591,12 @@ private:
 		return bytesActuallyRead;
 	}
 
-	void makeTbl() { // generate sample translation table
+	void makeTbl()
+	{
+		// generate sample translation table
 		for (int i = 0; i < 256; ++i) {
 			for (int j = 0; j < 8; ++j) {
-				samplTbl[i][j] = (i & (1 << (7-j))) ? 1.0 : -1.0; // MSB-first
+				samplTbl[i][j] = (i & (1 << (7 - j))) ? 1.0 : -1.0; // MSB-first
 			}
 		}
 	}

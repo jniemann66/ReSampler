@@ -82,8 +82,8 @@ public:
 	{
 	}
 
-	IQFile(const std::string& fileName, int infileMode, int infileFormat, int infileChannels, int infileRate) :
-		sndfileHandle(new SndfileHandle(fileName, infileMode, infileFormat & 0xFFFF00FF, infileChannels, infileRate))
+	IQFile(const std::string& fileName, int infileMode, int infileFormat, int infileChannels, int infileRate)
+		: sndfileHandle(new SndfileHandle(fileName, infileMode, infileFormat & 0xFFFF00FF, infileChannels, infileRate))
 	{
 		// Extract modulation type from 2nd-last byte of file format code.
 		// (Note: libsndfile has this for the subformat mask:
@@ -112,7 +112,7 @@ public:
 
 #ifdef ALTERNATIVE_FM_FUNCTIONS
 			historyI.resize(differentiatorLength, 0.0);
-            historyQ.resize(differentiatorLength, 0.0);
+			historyQ.resize(differentiatorLength, 0.0);
 #endif
 
 			phaseHistory.resize(differentiatorLength, 0.0);
@@ -127,7 +127,7 @@ public:
 			// set de-emphasis
 			if(modulationType == WFM) {
 				if(samplerate() != 0) {
-                    // to-do: more deemphasis settings ??
+					// to-do: more deemphasis settings ??
 					switch (deEmphasisType) {
 					case NoDeEmphasis:
 						break;
@@ -179,7 +179,8 @@ public:
 		return sndfileHandle->error();
 	}
 
-	int channels() {
+	int channels()
+	{
 		if(modulationType == WFM) {
 			return 2; // FM stereo
 		} else {
@@ -187,21 +188,24 @@ public:
 		}
 	}
 
-	int samplerate() {
+	int samplerate()
+	{
 		return sndfileHandle == nullptr ? 0 : sndfileHandle->samplerate();
 	}
 
-	int64_t frames() {
+	int64_t frames()
+	{
 		return sndfileHandle == nullptr ? 0LL : sndfileHandle->frames();
 	}
 
-	int format() {
+	int format()
+	{
 		return sndfileHandle == nullptr ? 0 : sndfileHandle->format();
 	}
 
 	template<typename FloatType>
-	int64_t read(FloatType* inbuffer, int64_t count) {
-
+	int64_t read(FloatType* inbuffer, int64_t count)
+	{
 		if(sndfileHandle == nullptr) {
 			return 0LL;
 		}
@@ -269,7 +273,8 @@ public:
 		return j;
 	}
 
-	sf_count_t seek(int64_t frames, int whence) {
+	sf_count_t seek(int64_t frames, int whence)
+	{
 		if(sndfileHandle == nullptr) {
 			return 0LL;
 		}
@@ -304,78 +309,78 @@ private:
 		phase += std::arg(dz);
 		z1 = z0;
 
-        // place input into history
+		// place input into history
 		phaseHistory[differentiatorIndex] = phase;
 
-        // perform the convolution
+		// perform the convolution
 		FloatType dP{0.0}; // differentiator result
-        int p = differentiatorIndex;
-        for(int j = 0 ; j < differentiatorLength; j++) {
+		int p = differentiatorIndex;
+		for(int j = 0 ; j < differentiatorLength; j++) {
 			FloatType vP = phaseHistory.at(p);
-            if(++p == differentiatorLength) {
-                p = 0; // wrap
-            }
-            dP += differentiatorCoeffs[j] * vP;
-        }
+			if(++p == differentiatorLength) {
+				p = 0; // wrap
+			}
+			dP += differentiatorCoeffs[j] * vP;
+		}
 
-        // update the current index
-        if(differentiatorIndex == 0) {
-            differentiatorIndex = differentiatorLength - 1; // wrap
-        } else {
-            differentiatorIndex--;
-        }
+		// update the current index
+		if(differentiatorIndex == 0) {
+			differentiatorIndex = differentiatorLength - 1; // wrap
+		} else {
+			differentiatorIndex--;
+		}
 
-        return gainTrim * dP;
+		return gainTrim * dP;
 	}
 
 #ifdef ALTERNATIVE_FM_FUNCTIONS
 	// demodulateFM2() : atan2-free, arbitrary FIR length
-    template<typename FloatType>
+	template<typename FloatType>
 	FloatType demodulateFM2(FloatType i, FloatType q)
-    {
-        static constexpr double threshold = -45.0;
-        static const double c = std::pow(10.0, threshold / 20.0);
-        FloatType dI{0.0}; // differentiated I
-        FloatType dQ{0.0}; // differentiated Q
+	{
+		static constexpr double threshold = -45.0;
+		static const double c = std::pow(10.0, threshold / 20.0);
+		FloatType dI{0.0}; // differentiated I
+		FloatType dQ{0.0}; // differentiated Q
 
-        // place input into history
-        historyI[differentiatorIndex] = i;
-        historyQ[differentiatorIndex] = q;
+		// place input into history
+		historyI[differentiatorIndex] = i;
+		historyQ[differentiatorIndex] = q;
 
-        // get position of delay tap
-        FloatType delayedI;
-        FloatType delayedQ;
-        int delayIndex = differentiatorIndex + differentiatorDelay;
-        if(delayIndex >= differentiatorLength) {
-            delayIndex -= differentiatorLength;
-        }
+		// get position of delay tap
+		FloatType delayedI;
+		FloatType delayedQ;
+		int delayIndex = differentiatorIndex + differentiatorDelay;
+		if(delayIndex >= differentiatorLength) {
+			delayIndex -= differentiatorLength;
+		}
 
-        // get delayed values from history
-        delayedI = historyI.at(delayIndex);
-        delayedQ = historyQ.at(delayIndex);
+		// get delayed values from history
+		delayedI = historyI.at(delayIndex);
+		delayedQ = historyQ.at(delayIndex);
 
-        // perform the convolution
-        int p = differentiatorIndex;
-        for(int j = 0 ; j < differentiatorLength; j++) {
-            FloatType vI = historyI.at(p);
-            FloatType vQ = historyQ.at(p);
-            if(++p == differentiatorLength) {
-                p = 0; // wrap
-            }
-            dI += differentiatorCoeffs[j] * vI;
-            dQ += differentiatorCoeffs[j] * vQ;
-        }
+		// perform the convolution
+		int p = differentiatorIndex;
+		for(int j = 0 ; j < differentiatorLength; j++) {
+			FloatType vI = historyI.at(p);
+			FloatType vQ = historyQ.at(p);
+			if(++p == differentiatorLength) {
+				p = 0; // wrap
+			}
+			dI += differentiatorCoeffs[j] * vI;
+			dQ += differentiatorCoeffs[j] * vQ;
+		}
 
-        // update the current index
-        if(differentiatorIndex == 0) {
-            differentiatorIndex = differentiatorLength - 1; // wrap
-        } else {
-            differentiatorIndex--;
-        }
+		// update the current index
+		if(differentiatorIndex == 0) {
+			differentiatorIndex = differentiatorLength - 1; // wrap
+		} else {
+			differentiatorIndex--;
+		}
 
-        double gain = 2.0 / (c + delayedI * delayedI + delayedQ * delayedQ);
-        return gain * (dQ * delayedI - dI  * delayedQ);
-    }
+		double gain = 2.0 / (c + delayedI * delayedI + delayedQ * delayedQ);
+		return gain * (dQ * delayedI - dI  * delayedQ);
+	}
 
 	// demodulateFM3() : atan2, 2nd-order FIR
 	template<typename FloatType>
@@ -430,7 +435,7 @@ private:
 	}
 
 	// setDeEmphasisHz() : set up deemphasis filter, given a frequency in Hz
-    //	double tau = 1 / (2 * pi * f); // Hz to time constant
+	//	double tau = 1 / (2 * pi * f); // Hz to time constant
 	//	double f = 2122.1; // 75 us
 	//  double f = 3183.1; // 50 us
 
@@ -456,7 +461,7 @@ private:
 	std::unique_ptr<SndfileHandle> sndfileHandle;
 	std::unique_ptr<MpxDecoder> mpxDecoder;
 	std::vector<double> wavBuffer;
-    std::vector<Biquad<double>> deEmphasisFilters;
+	std::vector<Biquad<double>> deEmphasisFilters;
 	std::vector<double> differentiatorCoeffs;
 
 	// properties
@@ -477,7 +482,7 @@ private:
 	// registers for demodulating FM (atan2 version)
 	std::complex<double> z0{0.0};
 	std::complex<double> z1{0.0};
-    double phase{0.0};
+	double phase{0.0};
 
 	// default differentiator type
 	int differentiatorType{8};
@@ -485,17 +490,17 @@ private:
 	// collection of differentiator coefficients
 	const std::vector<std::vector<double>> differentiators
 	{
-/*00*/	{0.0},
-/*01*/	{
+		/*00*/	{0.0},
+		/*01*/	{
 			1.0,
 			-1.0
 		},
-/*02*/	{
+		/*02*/	{
 			1.0,
 			0.0,
 			-1.0
 		},
-/*03*/	{
+		/*03*/	{
 			0.0209,
 			-0.1128,
 			1.2411,
@@ -503,7 +508,7 @@ private:
 			0.1128,
 			-0.0209
 		},
-/*04*/	{
+		/*04*/	{
 			-0.0081,
 			0.0341,
 			-0.1266,
@@ -513,7 +518,7 @@ private:
 			-0.0341,
 			0.0081
 		},
-/*05*/	{
+		/*05*/	{
 			0.0035,
 			-0.0140,
 			0.0401,
@@ -525,7 +530,7 @@ private:
 			0.0140,
 			-0.0035
 		},
-/*06*/	{
+		/*06*/	{
 			0.0209,
 			0.0,
 			-0.1128,
@@ -538,7 +543,7 @@ private:
 			0.0,
 			-0.0209
 		},
-/*07*/	{
+		/*07*/	{
 			-0.0081,
 			0.0,
 			0.0341,
@@ -555,7 +560,7 @@ private:
 			0.0,
 			0.0081
 		},
-/*08*/	{
+		/*08*/	{
 			0.0035,
 			0.0,
 			-0.0140,
@@ -578,13 +583,13 @@ private:
 		}
 	};
 
-    int differentiatorLength;
-    int differentiatorDelay;
-    int differentiatorIndex;
+	int differentiatorLength;
+	int differentiatorDelay;
+	int differentiatorIndex;
 
 #ifdef ALTERNATIVE_FM_FUNCTIONS
-    std::vector<double> historyI;
-    std::vector<double> historyQ;
+	std::vector<double> historyI;
+	std::vector<double> historyQ;
 #endif
 
 	std::vector<double> phaseHistory;
@@ -652,7 +657,7 @@ public:
 			std::vector<double> iq
 			{
 				cos(theta),
-				sin(theta)
+						sin(theta)
 			};
 
 			sndfile.writef(iq.data(), 1);

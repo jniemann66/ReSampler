@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2016 - 2023 Judd Niemann - All Rights Reserved.
+* Copyright (C) 2016 - 2026 Judd Niemann - All Rights Reserved.
 * You may use, distribute and modify this code under the
 * terms of the GNU Lesser General Public License, version 2.1
 *
@@ -31,8 +31,8 @@
 #endif
 
 
-inline void* aligned_malloc(size_t size, size_t alignment) {
-	
+inline void* aligned_malloc(size_t size, size_t alignment)
+{
 	if (size == 0) {
 		return nullptr;
 	}
@@ -46,12 +46,15 @@ inline void* aligned_malloc(size_t size, size_t alignment) {
 
 }
 
-inline void aligned_free(void *ptr) {
+inline void aligned_free(void *ptr)
+{
+
 #ifdef _WIN32
 	_aligned_free(ptr);
 #else 
 	free(ptr);
 #endif
+
 }
 
 #endif // alignedmalloc_H

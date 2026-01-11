@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2016 - 2023 Judd Niemann - All Rights Reserved.
+* Copyright (C) 2016 - 2026 Judd Niemann - All Rights Reserved.
 * You may use, distribute and modify this code under the
 * terms of the GNU Lesser General Public License, version 2.1
 *
@@ -26,8 +26,8 @@ static_assert(std::is_copy_constructible<ConversionInfo>::value, "ConversionInfo
 static_assert(std::is_copy_assignable<ConversionInfo>::value, "ConversionInfo needs to be copy Assignable");
 
 template<typename FloatType>
-std::vector<FloatType> makeFilterCoefficients(const ConversionInfo& ci, Fraction fraction) {
-
+std::vector<FloatType> makeFilterCoefficients(const ConversionInfo& ci, Fraction fraction)
+{
 	// determine cutoff frequency and steepness
 	double targetNyquist = std::min(ci.inputSampleRate, ci.outputSampleRate) / 2.0;
 	double ft = (ci.lpfCutoff / 100.0) * targetNyquist;
@@ -97,13 +97,15 @@ private:
 	ConvertFunction convertFn;
 
 	// passThrough() - just copies input straight to output (used in bypassMode mode)
-	void passThrough(FloatType* outBuffer, size_t& outBufferSize, const FloatType* inBuffer, const size_t& inBufferSize) {
+	void passThrough(FloatType* outBuffer, size_t& outBufferSize, const FloatType* inBuffer, const size_t& inBufferSize)
+	{
 		memcpy(outBuffer, inBuffer, inBufferSize * sizeof(FloatType));
 		outBufferSize = inBufferSize;
 	}
 
 	// filterOnly() - keeps 1:1 conversion ratio, but applies filter
-	void filterOnly(FloatType* outBuffer, size_t& outBufferSize, const FloatType* inBuffer, const size_t& inBufferSize) {
+	void filterOnly(FloatType* outBuffer, size_t& outBufferSize, const FloatType* inBuffer, const size_t& inBufferSize)
+	{
 		size_t o = 0;
 		for(size_t i = 0; i < inBufferSize; ++i) {
 			filter.put(inBuffer[i]);
@@ -113,7 +115,8 @@ private:
 	}
 
 	// interpolate() - interpolate (zero-stuffing) and apply filter:
-	void interpolate(FloatType* outBuffer, size_t& outBufferSize, const FloatType* inBuffer, const size_t& inBufferSize) {
+	void interpolate(FloatType* outBuffer, size_t& outBufferSize, const FloatType* inBuffer, const size_t& inBufferSize)
+	{
 		size_t o = 0;
 		for (size_t i = 0; i < inBufferSize; ++i) {
 			for(int l = 0; l < L; ++l) {
@@ -131,7 +134,8 @@ private:
 	}
 
 	// decimate() - decimate and apply filter
-	void decimate(FloatType* outBuffer, size_t& outBufferSize, const FloatType* inBuffer, const size_t& inBufferSize) {
+	void decimate(FloatType* outBuffer, size_t& outBufferSize, const FloatType* inBuffer, const size_t& inBufferSize)
+	{
 		size_t o = 0;
 		int localm = m;
 		for (size_t i = 0; i < inBufferSize; ++i) {
@@ -139,7 +143,8 @@ private:
 			if (localm == 0) {
 				outBuffer[o++] = filter.get();
 			}
-			if(++localm == M) {
+
+			if (++localm == M) {
 				localm = 0;
 			}
 		}
@@ -148,7 +153,8 @@ private:
 	}
 
 	// interpolateAndDecimate()
-	void interpolateAndDecimate(FloatType* outBuffer, size_t& outBufferSize, const FloatType* inBuffer, const size_t& inBufferSize) {
+	void interpolateAndDecimate(FloatType* outBuffer, size_t& outBufferSize, const FloatType* inBuffer, const size_t& inBufferSize)
+	{
 		size_t o = 0;
 		int localm = m;
 		for (size_t i = 0; i < inBufferSize; ++i) {
@@ -174,20 +180,17 @@ private:
 		m = localm;
 	}
 
-	void SetConvertFunction() {
+	void SetConvertFunction()
+	{
 		if (bypassMode) {
 			convertFn = &ResamplingStage::passThrough;
-		}
-		else if (L == 1 && M == 1) {
+		} else if (L == 1 && M == 1) {
 			convertFn = &ResamplingStage::filterOnly;
-		}
-		else if (L != 1 && M == 1) {
+		} else if (L != 1 && M == 1) {
 			convertFn = &ResamplingStage::interpolate;
-		}
-		else if (L == 1 && M != 1) {
+		} else if (L == 1 && M != 1) {
 			convertFn = &ResamplingStage::decimate;
-		}
-		else {
+		} else {
 			convertFn = &ResamplingStage::interpolateAndDecimate;
 		}
 	}
@@ -197,7 +200,9 @@ template <typename FloatType>
 class Converter
 {
 public:
-	explicit Converter(const ConversionInfo& ci) : ci(ci), groupDelay(0.0), isBypassMode(false), gain(1.0) {
+	explicit Converter(const ConversionInfo& ci)
+		: ci(ci), groupDelay(0.0), isBypassMode(false), gain(1.0)
+	{
 		if (ci.outputSampleRate == ci.inputSampleRate) {
 			isBypassMode = true;
 			Converter::ci.bSingleStage = true;
@@ -212,7 +217,8 @@ public:
 		}
 	}
 
-	void convert(FloatType* outBuffer, size_t& outBufferSize, const FloatType* inBuffer, const size_t& inBufferSize) {
+	void convert(FloatType* outBuffer, size_t& outBufferSize, const FloatType* inBuffer, const size_t& inBufferSize)
+	{
 		if (isMultistage) {
 			const FloatType* in = inBuffer; // first stage reads directly from inBuffer. Subsequent stages read from output of previous stage
 			size_t inSize = inBufferSize;
@@ -224,21 +230,23 @@ public:
 				inSize = outSize;
 			}
 			outBufferSize = outSize;
-		}
-		else {
+		} else {
 			convertStages[0].convert(outBuffer, outBufferSize, inBuffer, inBufferSize);
 		}
 	}
 
-	double getGroupDelay() {
+	double getGroupDelay()
+	{
 		return groupDelay;
 	}
 
-	double getGain() {
+	double getGain()
+	{
 		return gain;
 	}
 
-	void reset() {
+	void reset()
+	{
 		for (int i = 0; i < numStages; i++) {
 			convertStages[i].reset();
 			if (i != indexOfLastStage) {
@@ -248,7 +256,8 @@ public:
 	}
 
 private:
-	void initSinglestage() {
+	void initSinglestage()
+	{
 		numStages = 1;
 		indexOfLastStage = 0; // numStages - 1
 		Fraction f = getFractionFromSamplerates(ci.inputSampleRate, ci.outputSampleRate);
@@ -263,8 +272,9 @@ private:
 		FIRFilter<FloatType> firFilter(filterTaps.data(), static_cast<int>(filterTaps.size()));
 		convertStages.emplace_back(f.numerator, f.denominator, firFilter, isBypassMode);
 		groupDelay = (ci.bMinPhase || !ci.bDelayTrim) ? 0 : (filterTaps.size() - 1) / 2 / f.denominator;
-		if (isBypassMode)
+		if (isBypassMode) {
 			groupDelay = 0;
+		}
 	}
 
 	void initMultistage() {

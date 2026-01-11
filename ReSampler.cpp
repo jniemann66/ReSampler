@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2016 - 2023 Judd Niemann - All Rights Reserved.
+* Copyright (C) 2016 - 2026 Judd Niemann - All Rights Reserved.
 * You may use, distribute and modify this code under the
 * terms of the GNU Lesser General Public License, version 2.1
 *
@@ -125,9 +125,7 @@ bool determineBestBitFormat(std::string& bitFormat, const ConversionInfo& ci)
 		dsfInput = true;
 	} else if (inFileExt == "dff") {
 		dffInput = true;
-	}
-
-	else { // libsndfile-openable file
+	} else { // libsndfile-openable file
 
 		if (ci.bRawInput) {
 			inFileFormat = SF_FORMAT_RAW | subFormats.at(ci.rawInputBitFormat);
@@ -171,7 +169,7 @@ bool determineBestBitFormat(std::string& bitFormat, const ConversionInfo& ci)
 		return true;
 	}
 
-	if(SF_FORMAT_INFO formatinfo; getMajorFormatFromFileExt(&formatinfo, outFileExt)) {
+	if (SF_FORMAT_INFO formatinfo; getMajorFormatFromFileExt(&formatinfo, outFileExt)) {
 		SF_INFO sfinfo;
 		memset(&sfinfo, 0, sizeof(sfinfo));
 		sfinfo.channels = 1;
@@ -192,7 +190,7 @@ bool determineBestBitFormat(std::string& bitFormat, const ConversionInfo& ci)
 bool getMajorFormatFromFileExt(SF_FORMAT_INFO *info, const std::string& ext)
 {
 	bool found = false;
-	if(info != nullptr) {
+	if (info != nullptr) {
 
 		static const std::map<std::string, std::string> fileExtMap
 		{
@@ -272,28 +270,43 @@ void listSubFormats(const std::string& f)
 }
 
 // explicit instantiations - generate all required flavors of convert()
-bool convert_DffFile_Float(ConversionInfo & ci) {
+bool convert_DffFile_Float(ConversionInfo & ci)
+{
 	return convert<DffFile, float>(ci);
 }
-bool convert_DffFile_Double(ConversionInfo & ci) {
+
+bool convert_DffFile_Double(ConversionInfo & ci)
+{
 	return convert<DffFile, double>(ci);
 }
-bool convert_DsfFile_Float(ConversionInfo & ci) {
+
+bool convert_DsfFile_Float(ConversionInfo & ci)
+{
 	return convert<DsfFile, float>(ci);
 }
-bool convert_DsfFile_Double(ConversionInfo & ci) {
+
+bool convert_DsfFile_Double(ConversionInfo & ci)
+{
 	return convert<DsfFile, double>(ci);
 }
-bool convert_SndfileHandle_Float(ConversionInfo & ci) {
+
+bool convert_SndfileHandle_Float(ConversionInfo & ci)
+{
 	return convert<SndfileHandle, float>(ci);
 }
-bool convert_SndfileHandle_Double(ConversionInfo & ci) {
+
+bool convert_SndfileHandle_Double(ConversionInfo & ci)
+{
 	return convert<SndfileHandle, double>(ci);
 }
-bool convert_IQFile_Float(ConversionInfo& ci) {
+
+bool convert_IQFile_Float(ConversionInfo& ci)
+{
 	return convert<IQFile, float>(ci);
 }
-bool convert_IQFile_Double(ConversionInfo& ci) {
+
+bool convert_IQFile_Double(ConversionInfo& ci)
+{
 	return convert<IQFile, double>(ci);
 }
 
@@ -327,13 +340,13 @@ bool convert(ConversionInfo& ci)
 	int infileFormat = 0; // leave these zero for normal operation. (Only set for RAW input)
 	int infileChannels = 0;
 	int infileRate = 0;
-	if(ci.dsfInput) {
+	if (ci.dsfInput) {
 		infileMode = Dsf_read;
-	} else if(ci.dffInput) {
+	} else if (ci.dffInput) {
 		infileMode = Dff_read;
 	} else {
 		infileMode = SFM_READ;
-		if(ci.bRawInput) {
+		if (ci.bRawInput) {
 			auto it = subFormats.find(ci.rawInputBitFormat);
 			int infileSubFormat = (it != subFormats.end()) ? it->second : SF_FORMAT_PCM_16;
 			infileFormat = SF_FORMAT_RAW | infileSubFormat;
@@ -342,7 +355,7 @@ bool convert(ConversionInfo& ci)
 			std::cout << "raw input" << std::endl;
 		}
 
-		if(ci.bDemodulateIQ) {
+		if (ci.bDemodulateIQ) {
             infileFormat |= ((ci.IQModulationType | ci.IQDeEmphasisType) << 8);
             ModulationType modulationType = ci.IQModulationType;
             if (modulationType == WFM_NO_LOWPASS) {
@@ -353,15 +366,16 @@ bool convert(ConversionInfo& ci)
                 return pair.second == modulationType;
 			});
 			std::string s;
-			if(k != std::end(modulationTypeMap)) {
+			if (k != std::end(modulationTypeMap)) {
 				s = k->first;
 			}
             std::cout << "IQ demodulation " << s << " ";
-            if(ci.IQDeEmphasisType != NoDeEmphasis) {
+			if (ci.IQDeEmphasisType != NoDeEmphasis) {
                 auto k1 = std::find_if(std::begin(deEmphasisTypeMap), std::end(deEmphasisTypeMap), [&](const std::pair<std::string, DeEmphasisType> pair){
                     return pair.second == ci.IQDeEmphasisType;
                 });
-                if(k1 != std::end(deEmphasisTypeMap)) {
+
+				if (k1 != std::end(deEmphasisTypeMap)) {
                     std::cout << k1->first << "us de-emphasis";
                 }
             }
@@ -374,13 +388,14 @@ bool convert(ConversionInfo& ci)
 
     const int e = infile.error();
     if (e != SF_ERR_NO_ERROR) {
-        if(e == ERROR_IQFILE_WFM_SAMPLERATE_TOO_LOW) {
+		if (e == ERROR_IQFILE_WFM_SAMPLERATE_TOO_LOW) {
             std::cout << "Sample Rate not high enough for WFM" << std::endl;
         } else if (e == ERROR_IQFILE_TWO_CHANNELS_EXPECTED) {
             std::cout << "2 channels expected for an I/Q input file !" << std::endl;
         } else {
             std::cout << "Error: Couldn't Open Input File (" << sf_error_number(e) << ")" << std::endl;
         }
+
 		return false;
 	}
 
@@ -600,7 +615,6 @@ bool convert(ConversionInfo& ci)
 	RaiiTimer timer(inputDuration);
 	int clippingProtectionAttempts = 0;
 
-
 	do { // clipping detection loop (repeats if clipping detected AND not using a temp file)
 
 		infile.seek(0, SEEK_SET);
@@ -729,23 +743,24 @@ bool convert(ConversionInfo& ci)
 		outputChain.setChannelCount(nChannels);
 		outputChain.setTakeOwnership(true);
 
-		if(ci.bAdjustStereoWidth && nChannels == 2) {
+		if (ci.bAdjustStereoWidth && nChannels == 2) {
 			auto stereoImager = new StereoImager<FloatType>;
 			std::cout << "adjusting stereo width" << std::endl;
 			stereoImager->setStereoWidth(ci.stereoWidth);
 			outputChain.add(stereoImager);
 		}
 
-        if(ci.bFadeIn || ci.bFadeOut) {
+		if (ci.bFadeIn || ci.bFadeOut) {
 			auto fadeEffect = new FadeEffect<FloatType>;
 			fadeEffect->setSampleRate(ci.outputSampleRate); 
             fadeEffect->setTotalFrames(inputFrames * ci.outputSampleRate / ci.inputSampleRate);
 			const double shortestPossibleFade = 2.0 / ci.outputSampleRate;
-			if(ci.bFadeIn && ci.fadeInTime >= shortestPossibleFade) {
+			if (ci.bFadeIn && ci.fadeInTime >= shortestPossibleFade) {
 				std::cout << "fade-in " << ci.fadeInTime << " seconds" << std::endl;
 				fadeEffect->setFadeIn(ci.fadeInTime);
 			}
-			if(ci.bFadeOut && ci.fadeOutTime >= shortestPossibleFade) {
+
+			if (ci.bFadeOut && ci.fadeOutTime >= shortestPossibleFade) {
 				std::cout << "fade-out " << ci.fadeOutTime << " seconds" << std::endl;
                 fadeEffect->setFadeOut(ci.fadeOutTime);
             }
@@ -772,7 +787,7 @@ bool convert(ConversionInfo& ci)
 			// Grab a block of interleaved samples from file:
 			samplesRead = infile.read(inputBlock.data(), inputBlockSize);
 
-			if(samplesRead == 0) {
+			if (samplesRead == 0) {
 				eof = true;
 				samplesRead = std::min<size_t>(tailSize, inputBlockSize);
 				std::fill_n(inputBlock.begin(), samplesRead, static_cast<FloatType>(0.0));
@@ -839,12 +854,10 @@ bool convert(ConversionInfo& ci)
 			// write out to either temp file or outfile
 			if (ci.bTmpFile) {
 				tmpSndfileHandle->write(outputData, outputSampleCount);
-			}
-			else {
+			} else {
 				if (ci.csvOutput) {
 					csvFile->write(outputData, outputSampleCount);
-				}
-				else {
+				} else {
 					outFile->write(outputData, outputSampleCount);
 				}
 			}
@@ -935,8 +948,7 @@ bool convert(ConversionInfo& ci)
 					// write output buffer to outfile
 					if (ci.csvOutput) {
 						csvFile->write(outBuf.data(), i);
-					}
-					else {
+					} else {
 						outFile->write(outBuf.data(), i);
 					}
 
@@ -949,8 +961,6 @@ bool convert(ConversionInfo& ci)
 					}
 
 				} while (samplesRead > 0);
-
-
 
 				std::cout << "Done" << std::endl;
 				auto prec = std::cout.precision();
@@ -1010,8 +1020,7 @@ SndfileHandle* getTempFile(int inputFileFormat, int nChannels, const ConversionI
 		pathLen = static_cast<DWORD>(ci.tmpDir.length());
 		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> widener;
 		wcscpy_s(_tmpPathname, MAX_PATH, widener.from_bytes(ci.tmpDir).c_str());
-	}
-	else {
+	} else {
 		pathLen = GetTempPath(MAX_PATH, _tmpPathname);
 	}
 
@@ -1034,8 +1043,7 @@ SndfileHandle* getTempFile(int inputFileFormat, int nChannels, const ConversionI
 	tmpFileError = (f == NULL);
 	if (!tmpFileError) {
 		tmpSndfileHandle = new SndfileHandle(fileno(f), true, SFM_RDWR, tmpFileFormat, nChannels, ci.outputSampleRate); // open using file descriptor
-	}
-	else {
+	} else {
 		std::cerr << "std::tmpfile() failed" << std::endl;
 	}
 
@@ -1046,8 +1054,7 @@ SndfileHandle* getTempFile(int inputFileFormat, int nChannels, const ConversionI
 	if (!tmpFileError) {
 		if (ci.bShowTempFile) printf("temp file: %s\n", templ);
 		tmpSndfileHandle = new SndfileHandle(fd, true, SFM_RDWR, tmpFileFormat, nChannels, ci.outputSampleRate); // open using file descriptor
-	}
-	else {
+	} else {
 		std::cerr << "std::mkstemp() failed" << std::endl;
 	}
 
@@ -1065,14 +1072,12 @@ SndfileHandle* getTempFile(int inputFileFormat, int nChannels, const ConversionI
 		std::cout << "Error: Couldn't Open Temporary File (" << sf_error_number(e) << ")\n";
 		std::cout << "Disabling temp file mode." << std::endl;
 		tmpSndfileHandle = nullptr;
-	}
-	else {
+	} else {
 		// disable floating-point normalisation (important - we want to record/recover floating point values exactly)
 		if (sizeof(FloatType) == 8) {
 			tmpSndfileHandle->command(SFC_SET_NORM_DOUBLE, NULL,
 									  SF_FALSE); // http://www.mega-nerd.com/libsndfile/command.html#SFC_SET_NORM_DOUBLE
-		}
-		else {
+		} else {
 			tmpSndfileHandle->command(SFC_SET_NORM_FLOAT, NULL, SF_FALSE);
 		}
 	}
@@ -1081,7 +1086,8 @@ SndfileHandle* getTempFile(int inputFileFormat, int nChannels, const ConversionI
 }
 
 // retrieve metadata using libsndfile API :
-bool getMetaData(MetaData& metadata, SndfileHandle& infile) {
+bool getMetaData(MetaData& metadata, SndfileHandle& infile)
+{
 	const char* empty = "";
 	const char* str;
 
@@ -1117,8 +1123,8 @@ bool getMetaData(MetaData& metadata, SndfileHandle& infile) {
 }
 
 // set metadata using libsndfile API :
-bool setMetaData(const MetaData& metadata, SndfileHandle& outfile) {
-
+bool setMetaData(const MetaData& metadata, SndfileHandle& outfile)
+{
 	std::cout << "Writing Metadata" << std::endl;
 	if (!metadata.title.empty()) outfile.setString(SF_STR_TITLE, metadata.title.c_str());
 	if (!metadata.copyright.empty()) outfile.setString(SF_STR_COPYRIGHT, metadata.copyright.c_str());
@@ -1151,7 +1157,8 @@ bool setMetaData(const MetaData& metadata, SndfileHandle& outfile) {
 	return (outfile.error() == 0);
 }
 
-bool testSetMetaData(SndfileHandle& outfile) {
+bool testSetMetaData(SndfileHandle& outfile)
+{
 	MetaData m;
 	m.title.assign("test title");
 	m.copyright.assign("test copyright");
@@ -1166,13 +1173,15 @@ bool testSetMetaData(SndfileHandle& outfile) {
 	return setMetaData(m, outfile);
 }
 
-void showDitherProfiles() {
+void showDitherProfiles()
+{
 	for (int d = DitherProfileID::flat; d != DitherProfileID::end; ++d) {
 		std::cout << ditherProfileList[d].id << " : " << ditherProfileList[d].name << std::endl;
 	}
 }
 
-int getSfBytesPerSample(int format) {
+int getSfBytesPerSample(int format)
+{
     const int subformat = format & SF_FORMAT_SUBMASK;
 	switch (subformat) {
 	case SF_FORMAT_PCM_S8:
@@ -1207,7 +1216,8 @@ bool checkWarnOutputSize(sf_count_t inputSamples, int bytesPerSample, int numera
 }
 
 template<typename IntType>
-std::string fmtNumberWithCommas(IntType n) {
+std::string fmtNumberWithCommas(IntType n)
+{
 	std::string s = std::to_string(n);
 	int64_t insertPosition = s.length() - 3;
 	while (insertPosition > 0) {
@@ -1217,7 +1227,8 @@ std::string fmtNumberWithCommas(IntType n) {
 	return s;
 }
 
-void printSamplePosAsTime(sf_count_t samplePos, unsigned int sampleRate) {
+void printSamplePosAsTime(sf_count_t samplePos, unsigned int sampleRate)
+{
 	double seconds = static_cast<double>(samplePos) / sampleRate;
 	auto h = static_cast<int>(seconds / 3600);
 	auto m = static_cast<int>((seconds - (h * 3600)) / 60);
@@ -1227,33 +1238,38 @@ void printSamplePosAsTime(sf_count_t samplePos, unsigned int sampleRate) {
 	std::cout.flags(f);
 }
 
-bool testSetMetaData(DsfFile& outfile) {
+bool testSetMetaData(DsfFile& outfile)
+{
 	(void)outfile; // unused
 	// stub - to-do
 	return true;
 }
 
-bool testSetMetaData(DffFile& outfile) {
+bool testSetMetaData(DffFile& outfile)
+{
 	(void)outfile; // unused
 	// stub - to-do
 	return true;
 }
 
-bool getMetaData(MetaData& metadata, const DffFile& f) {
+bool getMetaData(MetaData& metadata, const DffFile& f)
+{
 	(void)metadata; // unused
 	(void)f; // unused
 	// stub - to-do
 	return true;
 }
 
-bool getMetaData(MetaData& metadata, const DsfFile& f) {
+bool getMetaData(MetaData& metadata, const DsfFile& f)
+{
 	(void)metadata; // unused
 	(void)f; // unused
 	// stub - to-do
 	return true;
 }
 
-bool getMetaData(MetaData& metadata, const IQFile& f) {
+bool getMetaData(MetaData& metadata, const IQFile& f)
+{
 	(void)metadata; // unused
 	(void)f; // unused
 	// stub - to-do
@@ -1262,7 +1278,8 @@ bool getMetaData(MetaData& metadata, const IQFile& f) {
 
 #ifndef USE_QUADMATH
 
-void generateExpSweep(const std::string& filename, int sampleRate, int format, double duration, int nOctaves, double amplitude_dB) {
+void generateExpSweep(const std::string& filename, int sampleRate, int format, double duration, int nOctaves, double amplitude_dB)
+{
 	int pow2P = 1 << nOctaves;
 	int pow2P1 = 1 << (nOctaves + 1);
 	double amplitude = pow(10.0, (amplitude_dB / 20.0));
@@ -1284,8 +1301,8 @@ void generateExpSweep(const std::string& filename, int sampleRate, int format, d
 
 #else // QUAD PRECISION VERSION
 
-void generateExpSweep(const std::string& filename, int sampleRate, int format, double duration, int nOctaves, double amplitude_dB) {
-
+void generateExpSweep(const std::string& filename, int sampleRate, int format, double duration, int nOctaves, double amplitude_dB)
+{
 	int pow2P = 1 << nOctaves;
 	int pow2P1 = 1 << (nOctaves + 1);
 	__float128 amplitude = pow(10.0Q, (amplitude_dB / 20.0Q));
@@ -1381,7 +1398,8 @@ bool showBuildVersion() {
 }
 
 
-void showCompiler() {
+void showCompiler()
+{
 
 #if defined(COMPILER_ID) && defined(COMPILER_VERSION)
 	std::cout << COMPILER_ID << " " << COMPILER_VERSION << std::endl;
@@ -1413,8 +1431,8 @@ void showCompiler() {
 }
 
 
-int runCommand(int argc, char** argv) {
-
+int runCommand(int argc, char** argv)
+{
 	// test for global options
 	if (parseGlobalOptions(argc, argv)) {
 		return EXIT_SUCCESS;
@@ -1535,17 +1553,17 @@ int runCommand(int argc, char** argv) {
 
 			ci.bEnablePeakDetection = true;
 
-			if(ci.bDemodulateIQ) {
-                if(ci.IQModulationType == WFM) {
+			if (ci.bDemodulateIQ) {
+				if (ci.IQModulationType == WFM) {
 					// WFM decoding too slow to read peaks
                     ci.bEnablePeakDetection = false;
 
 					// determine the strategy for lowpass-filtering
-					if(ci.outputSampleRate <= 30000) {
+					if (ci.outputSampleRate <= 30000) {
 						// deactivate MPX Decoder's LPF - just use the Sample Rate Converter's lowpass
 						ci.IQModulationType = WFM_NO_LOWPASS;
 
-					} else if(ci.outputSampleRate <= 96000) {
+					} else if (ci.outputSampleRate <= 96000) {
 						// deactivate MPX Decoder's LPF
 						ci.IQModulationType = WFM_NO_LOWPASS;
 
@@ -1586,7 +1604,7 @@ int runCommand(int argc, char** argv) {
 
 		ci.bEnablePeakDetection = true;
 
-		if(ci.bDemodulateIQ) {
+		if (ci.bDemodulateIQ) {
 			return convert_IQFile_Float(ci) ? EXIT_SUCCESS : EXIT_FAILURE;
 		}
 
@@ -1602,10 +1620,10 @@ int runCommand(int argc, char** argv) {
 
 std::function<void(int)> OutputManager::progressFunc = [](int percentComplete) {
 	std::cout << percentComplete << "%"
-								 #ifndef COMPILING_ON_ANDROID
-								 << "\b\b\b"
-								 #endif
-								 << std::flush;
+			 #ifndef COMPILING_ON_ANDROID
+			  << "\b\b\b"
+			 #endif
+			  << std::flush;
 };
 
 std::function<void (int)> OutputManager::getProgressFunc()

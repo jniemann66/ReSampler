@@ -38,20 +38,21 @@ enum PilotPresence
 class NCO
 {
 public:
-	NCO(int sampleRate, double centerFrequencyHz = 19000.0) : sampleRate(sampleRate), centerFrequencyHz(centerFrequencyHz) 
-	{ 
+	NCO(int sampleRate, double centerFrequencyHz = 19000.0)
+		: sampleRate(sampleRate), centerFrequencyHz(centerFrequencyHz)
+	{
 		hzToAngularFactor = M_TWOPI / NCO::sampleRate; // for converting Hz to radians / sample
 		angularToHzFactor = NCO::sampleRate / M_TWOPI; // for converting radians / sample to Hz
 		setFrequency(centerFrequencyHz);
 		biquad1.setCoeffs(0.002206408204233198, 0.004412816408466396, 0.002206408204233198, -1.8043019281465769, 0.814646474444927);
-		biquad2.setCoeffs(0.00390625, 0.0078125, 0.00390625, -1.8486208186651036, 0.8619515640441029);        
+		biquad2.setCoeffs(0.00390625, 0.0078125, 0.00390625, -1.8486208186651036, 0.8619515640441029);
 	}
 
 	void sync(double input)
 	{
 		// advance position
 		theta += angularFreq;
-		if(theta > M_PI) {
+		if (theta > M_PI) {
 			theta -= M_TWOPI;
 		}
 
@@ -71,14 +72,16 @@ public:
 
     // getDoubled() : get frequency-doubled oscillator output
     // (call this function first, because it evaluates sinOut and cosOut)
-	double getDoubled() {
+	double getDoubled()
+	{
 		sinOut = std::sin(theta);
 		cosOut = std::cos(theta);
 		return 2.0 * cosOut * sinOut;
 	}
 
 	// getTripled() : get frequency-tripled oscillator output
-	double getTripled() {
+	double getTripled()
+	{
 		// Chebyshev polynomial of the SECOND kind multipled by sinϴ
 		// sin(3ϴ) = (4cos^2(ϴ) - 1) * sin(ϴ)
 		return (4.0 * cosOut * cosOut - 1.0) * sinOut;
@@ -104,8 +107,7 @@ public:
 		ReSampler::Biquad<double> f2(0.00390625, 0.0078125, 0.00390625, -1.8486208186651036, 0.8619515640441029);
 
 		impulseResponse[100] = f2.filter(f1.filter(1.0));
-		for(int i = 101; i < static_cast<int>(impulseResponse.size()); i++)
-		{
+		for (int i = 101; i < static_cast<int>(impulseResponse.size()); i++) {
 			impulseResponse[i] = f2.filter(f1.filter(0.0));
 		}
 
@@ -130,7 +132,8 @@ private:
 class MpxDecoder
 {
 public:
-	MpxDecoder(int sampleRate) : nco(sampleRate)
+	MpxDecoder(int sampleRate)
+		: nco(sampleRate)
 	{
 		// create filters
 		auto f0 = make19KhzBandpass<double>(sampleRate);
@@ -177,11 +180,12 @@ public:
 	std::pair<FloatType, FloatType> decode(FloatType input)
 	{
 		delayLine[currentIndex] = input; // place input into history
-		if(currentIndex == 0) {
+		if (currentIndex == 0) {
 			currentIndex = length - 1;
 		} else {
 			currentIndex--;
 		}
+
 		int d = currentIndex + centerTap;
 		FloatType mono = delayLine[d >= length ? d - length : d];
 
@@ -193,7 +197,8 @@ public:
 		FloatType pilot = pilotRaw * pilotGain;
 		FloatType pilotAbs = std::fabs(pilot);
 
-		if(pilotAbs > pilotPeak) {
+		if (pilotAbs > pilotPeak)
+		{
 			pilotPeak = pilotAbs;
 		}
 
@@ -201,17 +206,17 @@ public:
   //      std::cout << pilotGain << ", " << pilotPeak << "\n";
 #endif
 
-		if(pilotGain >= pilotMaxGain) {
+		if (pilotGain >= pilotMaxGain) {
 			pilotGain = pilotMaxGain;
 			pilotPresence = PilotNotPresent;
-		} else if(pilotPeak < pilotStableLow) { // pilot too quiet
+		} else if (pilotPeak < pilotStableLow) { // pilot too quiet
 			pilotGain *= increaseRate;
 
 #ifdef MPXDECODER_TUNE_PILOT_AGC
 			plusCount++;
 #endif
 
-		} else if(pilotPeak > pilotStableHigh) { // pilot too loud
+		} else if (pilotPeak > pilotStableHigh) { // pilot too loud
 			pilotGain *= decreaseRate;
 			pilotPeak *= decreaseRate;
 
@@ -236,7 +241,7 @@ public:
 
 		double local38k;
 
-		if(pilotPresence != PilotPresent) {
+		if (pilotPresence != PilotPresent) {
 			left = mono;
 			right = mono;
 		} else { // todo: fade from mono to stereo (& back ...)
@@ -259,7 +264,7 @@ public:
 			right = stereoGain * (mono - stereoWidth * side);
 		}
 
-		if(!lowpassEnabled) {
+		if (!lowpassEnabled) {
 			return {left, right};
 		}
 
@@ -294,7 +299,7 @@ public:
 		ReSampler::makeLPF<FloatType>(pFilterTaps2, filterSize, ft2, sampleRate);
 
 		// make bandpass
-		for(int i = 0; i < filterSize; i++) {
+		for (int i = 0; i < filterSize; i++) {
 			filterTaps2[i] -= filterTaps1.at(i);
 		}
 
@@ -355,7 +360,7 @@ public:
 		std::cout << "filter size " << filt1.size() << std::endl;
 		std::vector<double> interleaved;
 		interleaved.reserve(2 * filt1.size());
-		for(int i = 0; i < static_cast<int>(filt1.size()); i++) {
+		for (int i = 0; i < static_cast<int>(filt1.size()); i++) {
 			interleaved.push_back(filt1.at(i));
 			interleaved.push_back(filt2.at(i));
 		}
