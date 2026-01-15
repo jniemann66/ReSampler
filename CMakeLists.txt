@@ -1,5 +1,5 @@
-project(ReSampler C CXX)
 cmake_minimum_required(VERSION 3.11)
+project(ReSampler C CXX)
 find_package(Threads REQUIRED)
 set(CMAKE_CXX_STANDARD 17)
 
@@ -29,7 +29,7 @@ if(ANDROID)
         factorial.h
         noiseshape.h
         osspecific.h
-        raiitimer.h
+		raiitimer.h:
         main.cpp
         ReSampler.cpp
         ReSampler.h
@@ -51,19 +51,18 @@ else()
         # single-config build (build type decided by CMAKE_BUILD_TYPE )
 
         # for single-config builds, add additional configurations
-        set (CMAKE_CXX_FLAGS_RELEASEAVX ${CMAKE_CXX_FLAGS_RELEASE_INIT} " -DUSE_AVX -mavx")
-        set (CMAKE_CXX_FLAGS_RELEASEQUADMATH ${CMAKE_CXX_FLAGS_RELEASE_INIT} " -DUSE_QUADMATH")
+		set (CMAKE_CXX_FLAGS_RELEASEAVX "${CMAKE_CXX_FLAGS_RELEASE_INIT} -DUSE_AVX -mavx2")
+		set (CMAKE_CXX_FLAGS_RELEASEQUADMATH "${CMAKE_CXX_FLAGS_RELEASE_INIT} -DUSE_QUADMATH")
 
         if(NOT CMAKE_BUILD_TYPE)
             message(STATUS "build type not specified - using default")
-            set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the build type" FORCE)
+			set(CMAKE_BUILD_TYPE "ReleaseAVX" CACHE STRING "Choose the build type" FORCE)
         endif()
 
         # Set the possible values of build type for cmake-gui
         set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo" "ReleaseAVX" "ReleaseQuadmath")
 
         message(STATUS "build type: '${CMAKE_BUILD_TYPE}'")
-
     endif()
 
     set(SOURCE_FILES
@@ -92,7 +91,7 @@ else()
         fadeeffect.h
         )
 
-    if (WIN32)
+	if(WIN32)
 
         message(STATUS "libsndfile library location: " ${SNDFILE_LIBRARY})
 
@@ -153,10 +152,32 @@ else()
         endif()
 
         add_library(ReSamplerLib SHARED ${SOURCE_FILES})
+
         if(CMAKE_BUILD_TYPE STREQUAL "ReleaseQuadmath")
-            message(STATUS "Linking with Quadmath library")
-            set(CMAKE_CXX_EXTENSIONS TRUE)  # -std=gnu++11 instead of -std=c++11
-            target_link_libraries(ReSamplerLib sndfile fftw3 quadmath ${CMAKE_THREAD_LIBS_INIT})
+
+			# cmake >=3.19:
+			# # check if quadmath package is available by compiling a tiny program
+			# include(CheckSourceCompiles)
+			# check_source_compiles(
+			# 	"#include <quadmath.h>\nint main() {return quadmath_atan(1.0Q);}"
+			# 	QUADMATH_AVAILABLE
+			# )
+
+			# Search for the quadmath header file
+			include(CheckIncludeFile)
+			check_include_file("quadmath.h" HAVE_QUADMATH_HEADER)
+
+			# Search for the quadmath library
+			find_library(HAVE_QUADMATH_LIBRARY quadmath) # 2026-01-16 : fails to detect
+
+			if(HAVE_QUADMATH_HEADER)
+				message(STATUS "Linking with Quadmath library")
+				set(CMAKE_CXX_EXTENSIONS TRUE)  # -std=gnu++11 instead of -std=c++11
+				target_link_libraries(ReSamplerLib sndfile fftw3 quadmath ${CMAKE_THREAD_LIBS_INIT})
+			else()
+				message(STATUS "Quadmath is not available. (Try installing a package such as 'libquadmath-devel'")
+			endif()
+
         else()
             target_link_libraries(ReSamplerLib sndfile fftw3 ${CMAKE_THREAD_LIBS_INIT})
         endif()

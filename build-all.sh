@@ -5,6 +5,7 @@
 
 # Define build directories based on compiler choice
 GCC_BUILD_DIR="build/gcc"
+GCC_QUADMATH_BUILD_DIR="build/gcc_quadmath"
 CLANG_BUILD_DIR="build/clang"
 
 # Function to build with GCC
@@ -13,11 +14,24 @@ build_gcc() {
     mkdir -p "$GCC_BUILD_DIR"
 
     # Configure the project using GCC
-    cmake -B./"$GCC_BUILD_DIR" -DCMAKE_CXX_COMPILER=g++ .
+    cmake . -B./"$GCC_BUILD_DIR" -DCMAKE_CXX_COMPILER=g++
 
     # Build the project
-    cmake --build "$GCC_BUILD_DIR"
+    cmake --build "$GCC_BUILD_DIR" #--verbose
 }
+
+# Function to build with GCC Quad-Precision
+build_gcc_quadmath() {
+    echo "--- Building with GCC (Quad Precision) ---"
+    mkdir -p "$GCC_QUADMATH_BUILD_DIR"
+
+    # Configure the project using GCC
+    cmake . -B./"$GCC_QUADMATH_BUILD_DIR" -DCMAKE_BUILD_TYPE=ReleaseQuadmath -DCMAKE_CXX_COMPILER=g++
+
+    # Build the project
+    cmake --build "$GCC_QUADMATH_BUILD_DIR" #--verbose
+}
+
 
 # Function to build with Clang
 build_clang() {
@@ -25,11 +39,12 @@ build_clang() {
     mkdir -p "$CLANG_BUILD_DIR"
 
     # Configure the project using Clang
-    cmake -B./"$CLANG_BUILD_DIR" -DCMAKE_CXX_COMPILER=clang++ .
+    cmake . -B./"$CLANG_BUILD_DIR" -DCMAKE_CXX_COMPILER=clang++
 
     # Build the project
-    cmake --build "$CLANG_BUILD_DIR"
+    cmake --build "$CLANG_BUILD_DIR" #--verbose
 }
 
 build_gcc
 build_clang
+build_gcc_quadmath
