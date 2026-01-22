@@ -1,0 +1,5 @@
+language: bash
+script:
+  - chmod u+x build-all.sh
+  - ./build-all.sh
+
