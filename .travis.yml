@@ -1,4 +1,8 @@
 language: bash
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install -y libsndfile1-dev
+
 script:
   - chmod u+x build-all.sh
   - ./build-all.sh
