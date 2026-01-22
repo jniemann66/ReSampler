@@ -85,7 +85,7 @@ if command -v "$MINGW_GCC" &> /dev/null; then
     echo "$MINGW_GCC found!"
     "$MINGW_GCC" --version
 # todo: activate when ready ...
-    build_mingw 
+    # build_mingw 
 else
     echo "$MINGW_GCC not found."
 fi
