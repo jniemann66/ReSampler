@@ -1,7 +1,17 @@
 language: bash
 before_install:
+  before_install:
+  # build latest libsndfile from source
   - sudo apt-get update
-  - sudo apt-get install -y libsndfile1-dev
+  - sudo apt-get install -y build-essential wget # Install build tools
+  - wget https://github.com/libsndfile/libsndfile/releases/download/1.2.2/libsndfile-1.2.2.tar.xz # Get latest (check releases for newer)
+  - tar -xf libsndfile-1.2.2.tar.xz
+  - cd libsndfile-1.2.2
+  - ./configure
+  - make
+  - sudo make install
+  - cd ..
+  # install libfftw3
   - sudo apt-get install -y libfftw3-dev build-essential
 
 script:
