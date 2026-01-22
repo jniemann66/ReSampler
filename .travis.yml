@@ -5,6 +5,7 @@ before_install:
   - sudo apt-get install -y libfftw3-dev build-essential
 
 script:
+  - apt-cache policy libsndfile1
   - chmod u+x build-all.sh
   - ./build-all.sh
 
