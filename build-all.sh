@@ -70,17 +70,22 @@ build_mingw() {
     cmake --build "$WIN_BUILD_DIR" #--verbose
 }
 
+echo ""
 build_gcc
+echo ""
 build_clang
+echo ""
 build_gcc_quadmath
+
 
 # if mingw-w64 detected, cross-compile for Windows
 MINGW_GCC="x86_64-w64-mingw32-gcc"
+echo ""
 if command -v "$MINGW_GCC" &> /dev/null; then
     echo "$MINGW_GCC found!"
     "$MINGW_GCC" --version
 # todo: activate when ready ...
-    # build_mingw 
+    build_mingw 
 else
     echo "$MINGW_GCC not found."
 fi

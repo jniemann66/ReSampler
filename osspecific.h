@@ -35,7 +35,7 @@
 #define UNICODE // turns TCHAR into wchar_t
 #endif 
 
-#include <Windows.h>
+#include <windows.h>
 #include <codecvt>
 /* end Windows-Specific*/
 
