@@ -1,7 +1,19 @@
 #!/bin/bash
 
-# script to produce in-source builds for both gcc AND clang
-# (run this from project src dir)
+# script to produce in-source builds for multiple compilers and build types
+# (gcc, clang, mingw-w64 cross-compiler)
+# run this from project src dir. 
+# this is designed to only be run from Linux (not git bash on windows etc) 
+
+# Check the operating system type using 'uname -s'
+OS_TYPE=$(uname -s)
+if [ "$OS_TYPE" = "Linux" ]; then
+    echo "Running on Linux. Proceeding with script execution."
+else
+    echo "This script is intended for Linux only. Current OS is: $OS_TYPE"
+    echo "Exiting."
+    exit 1
+fi
 
 # Define build directories based on compiler choice
 GCC_BUILD_DIR="build/gcc"
