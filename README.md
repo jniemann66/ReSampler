@@ -1,3 +1,4 @@
+[![Build Status](https://app.travis-ci.com/jniemann66/ReSampler.svg?token=nRM7KT1WTxcbiqSZdpqf&branch=master)](https://app.travis-ci.com/jniemann66/ReSampler)
 
 ## Synopsis
 ReSampler is a high-performance command-line audio sample rate conversion tool which can convert audio file formats with a variety of different bit-depths and audio channel configurations.
