@@ -2,6 +2,7 @@ language: bash
 before_install:
   - sudo apt-get update
   - sudo apt-get install -y libsndfile1-dev
+  - sudo apt-get install -y libfftw3-dev build-essential
 
 script:
   - chmod u+x build-all.sh
