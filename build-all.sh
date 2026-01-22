@@ -19,6 +19,7 @@ fi
 GCC_BUILD_DIR="build/gcc"
 GCC_QUADMATH_BUILD_DIR="build/gcc_quadmath"
 CLANG_BUILD_DIR="build/clang"
+WIN_BUILD_DIR="build/win_x86-64"
 
 # Function to build with GCC
 build_gcc() {
@@ -57,6 +58,29 @@ build_clang() {
     cmake --build "$CLANG_BUILD_DIR" #--verbose
 }
 
+# Function to cross-compile for Windows using mingw-w64
+build_mingw() {
+    echo "--- Building for Windows using mingw-w64 ---"
+    mkdir -p "$WIN_BUILD_DIR"
+
+    # Configure the project using the mingw toolchain file
+    cmake . -B./"$WIN_BUILD_DIR" -DCMAKE_TOOLCHAIN_FILE=toolchain-mingw64.cmake
+
+    # Build the project
+    cmake --build "$WIN_BUILD_DIR" #--verbose
+}
+
 build_gcc
 build_clang
 build_gcc_quadmath
+
+# if mingw-w64 detected, cross-compile for Windows
+MINGW_GCC="x86_64-w64-mingw32-gcc"
+if command -v "$MINGW_GCC" &> /dev/null; then
+    echo "$MINGW_GCC found!"
+    "$MINGW_GCC" --version
+# todo: activate when ready ...
+    # build_mingw 
+else
+    echo "$MINGW_GCC not found."
+fi
