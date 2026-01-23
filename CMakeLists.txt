@@ -91,23 +91,44 @@ else()
         fadeeffect.h
         )
 
-	if(WIN32)
+#     function(dump_cmake_variables)
+#     # Get all variable names in the current scope
+#     get_cmake_property(_variableNames VARIABLES)
+#     list(SORT _variableNames)
+#     foreach(_variableName ${_variableNames})
+#         # Print each variable name and its value
+#         message(STATUS "${_variableName}=${${_variableName}}")
+#     endforeach()
+# endfunction()
+#
+# # Call the function to print all variables in the current scope
+# dump_cmake_variables()
 
-        message(STATUS "libsndfile library location: " ${SNDFILE_LIBRARY})
+
+	if(WIN32 OR CMAKE_CROSSCOMPILING)
 
         if(CMAKE_SIZEOF_VOID_P EQUAL 4)
             message(STATUS "Windows 32-bit")
-            set (SNDFILE_DIR libsndfile-1.2.0-win32)
-            set (FFTW_DIR fftw32)
+            set (SNDFILE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libsndfile-1.2.0-win32")
+            set (FFTW_DIR "${CMAKE_CURRENT_SOURCE_DIR}/fftw32")
         else()
             message(STATUS "Windows 64-bit")
-            set (SNDFILE_DIR libsndfile-1.2.0-win64)
-            set (FFTW_DIR fftw64)
+            set (SNDFILE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libsndfile-1.2.0-win64")
+            set (FFTW_DIR "${CMAKE_CURRENT_SOURCE_DIR}/fftw64")
         endif()
+
+        message(STATUS "libsndfile dir: " ${SNDFILE_DIR})
+        message(STATUS "fftw dir: " ${FFTW_DIR})
 
         include_directories(${SNDFILE_DIR}/include ${FFTW_DIR})
         link_directories(${SNDFILE_DIR}/lib ${FFTW_DIR})
-        find_library(SNDFILE_LIBRARY NAMES sndfile HINTS ${SNDFILE_DIR}/lib)
+
+        find_library(SNDFILE_LIBRARY
+            NAMES sndfile
+            HINTS ${SNDFILE_DIR}
+        )
+
+        message(STATUS "libsndfile library location: " ${SNDFILE_LIBRARY})
 
         add_library(ReSamplerLib ${SOURCE_FILES})
 
