@@ -84,6 +84,9 @@ static constexpr size_t BUFFERSIZE = 32768; // buffer size for file reads
 static constexpr double clippingTrim = 1.0 - (1.0 / (1 << 23));
 static constexpr int maxClippingProtectionAttempts = 3;
 
+// undefine for old versions of libsndfile (< 1.0.8 ?)
+#define SNDFILE_HAS_MPEG_SUBFORMATS
+
 // map of commandline subformats to libsndfile subformats:
 const std::map<std::string, int> subFormats = {
 	{ "s8", SF_FORMAT_PCM_S8 },
@@ -113,10 +116,15 @@ const std::map<std::string, int> subFormats = {
 	{ "alac16", SF_FORMAT_ALAC_16 },
 	{ "alac20", SF_FORMAT_ALAC_20 },
 	{ "alac24", SF_FORMAT_ALAC_24 },
-	{ "alac32", SF_FORMAT_ALAC_32 },
+	{ "alac32", SF_FORMAT_ALAC_32 }
+
+#if defined(SNDFILE_HAS_MPEG_SUBFORMATS)
+	,
 	{ "layer1", SF_FORMAT_MPEG_LAYER_I },
 	{ "layer2", SF_FORMAT_MPEG_LAYER_II },
 	{ "layer3", SF_FORMAT_MPEG_LAYER_III }
+#endif
+
 };
 
 // map of default (ie sensible) subformats (usually 16-bit PCM)
