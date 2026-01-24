@@ -91,20 +91,6 @@ else()
         fadeeffect.h
         )
 
-#     function(dump_cmake_variables)
-#     # Get all variable names in the current scope
-#     get_cmake_property(_variableNames VARIABLES)
-#     list(SORT _variableNames)
-#     foreach(_variableName ${_variableNames})
-#         # Print each variable name and its value
-#         message(STATUS "${_variableName}=${${_variableName}}")
-#     endforeach()
-# endfunction()
-#
-# # Call the function to print all variables in the current scope
-# dump_cmake_variables()
-
-
 	if(WIN32 OR CMAKE_CROSSCOMPILING)
 
         if(CMAKE_SIZEOF_VOID_P EQUAL 4)

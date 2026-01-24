@@ -1,10 +1,10 @@
 #include "conversioninfo.h"
 #include "ditherer.h"
 
-#include <iostream>
-#include <vector>
 #include <algorithm>
+#include <iostream>
 #include <stdexcept>
+#include <vector>
 
 namespace ReSampler {
 

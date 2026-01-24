@@ -12,24 +12,24 @@
 #include "ReSampler.h"
 #include "csv.h" // to-do: check macOS
 #include "ctpl/ctpl_stl.h"
-#include "raiitimer.h"
-#include "fraction.h"
-#include "srconvert.h"
+#include "dff.h"
 #include "ditherer.h"
+#include "dsf.h"
+#include "effectchain.h"
+#include "fadeeffect.h"
+#include "fraction.h"
 #include "iqdemodulator.h"
 #include "mpxdecode.h"
+#include "raiitimer.h"
+#include "srconvert.h"
 #include "stereoimager.h"
-#include "fadeeffect.h"
-#include "effectchain.h"
-#include "dsf.h"
-#include "dff.h"
 
 #include <cstdio>
-#include <string>
-#include <iostream>
-#include <vector>
 #include <iomanip>
+#include <iostream>
 #include <regex>
+#include <string>
+#include <vector>
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // This program uses the following libraries:
