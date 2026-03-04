@@ -36,7 +36,7 @@ else
     #find ./outputs -type f ! -name '*.png' ! -name '*.txt' ! -name '*.sd2' ! -name '*.raw' -print0 | xargs -i --null -n 1 -P $numThreads $spectrogram_tool --dyn-range=190 {} 1200 960 {}.png 
 
     #cmdline for 'sndspec' program:
-    find ./outputs -type f ! -name '*.png' ! -name '*.txt' ! -name '*.sd2' ! -name '*.raw' -print0 | xargs -i --null -n 1 -P $numThreads $spectrogram_tool {} --spectrum -t 0.0 1.0 -W rectangular -w 3840 -h 2160 -o ./outputs 
+    find ./outputs -type f ! -name '*.png' ! -name '*.txt' ! -name '*.sd2' ! -name '*.raw' -print0 | xargs -i --null -n 1 -P $numThreads $spectrogram_tool {} --peak-selection 1 --spectrum -t 0.0 1.0 -W rectangular -w 1024 -h 768 -o ./outputs 
 fi
 
 echo $(tput setaf 2)moving spectrums to ./spectrums folder$(tput setaf 7)
