@@ -68,9 +68,9 @@ const std::string strExtraOptions(
 		"--rawInput <samplerate> <bitformat> [numChannels]\n"
 		"--progress-updates <0..100>\n"
 
-		#if defined (_WIN32) || defined (_WIN64)
+#if defined (_WIN32) || defined (_WIN64)
 		"--tempDir <path>\n"
-		#endif
+#endif
 
 		"--showTempFile\n"
 		"--noTempFile\n"
