@@ -64,14 +64,14 @@ public:
 #endif
 
 		// some constant that I don't know how to set properly (controls how aggressively the frequency is altered)
-        constexpr double someStoopidConstant = 10.0;
+		constexpr double someStoopidConstant = 10.0;
 
 		// adjust frequency
-        setFrequency(centerFrequencyHz + someStoopidConstant * phase);
+		setFrequency(centerFrequencyHz + someStoopidConstant * phase);
 	}
 
-    // getDoubled() : get frequency-doubled oscillator output
-    // (call this function first, because it evaluates sinOut and cosOut)
+	// getDoubled() : get frequency-doubled oscillator output
+	// (call this function first, because it evaluates sinOut and cosOut)
 	double getDoubled()
 	{
 		sinOut = std::sin(theta);
@@ -89,12 +89,12 @@ public:
 
 	double getFrequency() const
 	{
-        return angularToHzFactor * angularFreq;
+		return angularToHzFactor * angularFreq;
 	}
 
 	void setFrequency(double value)
-    {
-        angularFreq = hzToAngularFactor * value;
+	{
+		angularFreq = hzToAngularFactor * value;
 	}
 
 	static void saveIIRresponse(const std::string& filename)
@@ -125,8 +125,8 @@ private:
 	double angularToHzFactor;
 
 	double theta{0.0};
-    double cosOut{1.0}; // oscillator cosine output
-    double sinOut{0.0}; // oscillator sine output
+	double cosOut{1.0}; // oscillator cosine output
+	double sinOut{0.0}; // oscillator sine output
 };
 
 class MpxDecoder
@@ -159,7 +159,7 @@ public:
 		setStereoWidth(0.5);
 
 #ifdef MPXDECODER_SAVE_PILOT
-        pilotOutFile.reset(new SndfileHandle("/tmp/pilot.wav", SFM_WRITE, SF_FORMAT_WAV | SF_FORMAT_FLOAT, 2, sampleRate));
+		pilotOutFile.reset(new SndfileHandle("/tmp/pilot.wav", SFM_WRITE, SF_FORMAT_WAV | SF_FORMAT_FLOAT, 2, sampleRate));
 #endif
 
 	}
@@ -189,82 +189,82 @@ public:
 		int d = currentIndex + centerTap;
 		FloatType mono = delayLine[d >= length ? d - length : d];
 
-		filters.at(0).put(input);
-		filters.at(1).put(input);
+				filters.at(0).put(input);
+				filters.at(1).put(input);
 
-		FloatType pilotRaw = filters.at(0).get();
-		FloatType sideRaw = filters.at(1).get();
-		FloatType pilot = pilotRaw * pilotGain;
-		FloatType pilotAbs = std::fabs(pilot);
+				FloatType pilotRaw = filters.at(0).get();
+				FloatType sideRaw = filters.at(1).get();
+				FloatType pilot = pilotRaw * pilotGain;
+				FloatType pilotAbs = std::fabs(pilot);
 
-		if (pilotAbs > pilotPeak)
+				if (pilotAbs > pilotPeak)
 		{
-			pilotPeak = pilotAbs;
-		}
+				pilotPeak = pilotAbs;
+	}
 
-#ifdef MPXDECODER_TUNE_PILOT_AGC
-  //      std::cout << pilotGain << ", " << pilotPeak << "\n";
-#endif
+		#ifdef MPXDECODER_TUNE_PILOT_AGC
+				//      std::cout << pilotGain << ", " << pilotPeak << "\n";
+		#endif
 
-		if (pilotGain >= pilotMaxGain) {
-			pilotGain = pilotMaxGain;
-			pilotPresence = PilotNotPresent;
-		} else if (pilotPeak < pilotStableLow) { // pilot too quiet
-			pilotGain *= increaseRate;
+				if (pilotGain >= pilotMaxGain) {
+				pilotGain = pilotMaxGain;
+				pilotPresence = PilotNotPresent;
+	} else if (pilotPeak < pilotStableLow) { // pilot too quiet
+				pilotGain *= increaseRate;
 
-#ifdef MPXDECODER_TUNE_PILOT_AGC
-			plusCount++;
-#endif
+		#ifdef MPXDECODER_TUNE_PILOT_AGC
+				plusCount++;
+		#endif
 
-		} else if (pilotPeak > pilotStableHigh) { // pilot too loud
-			pilotGain *= decreaseRate;
-			pilotPeak *= decreaseRate;
+	} else if (pilotPeak > pilotStableHigh) { // pilot too loud
+				pilotGain *= decreaseRate;
+				pilotPeak *= decreaseRate;
 
 
-#ifdef MPXDECODER_TUNE_PILOT_AGC
-			minusCount++;
-#endif
+		#ifdef MPXDECODER_TUNE_PILOT_AGC
+				minusCount++;
+		#endif
 
-		} else { // stable pilot tone
+	} else { // stable pilot tone
 
-#ifdef MPXDECODER_TUNE_PILOT_AGC
-			stableCount++;
-#endif
-			pilotPresence = PilotPresent;
-		}
+		#ifdef MPXDECODER_TUNE_PILOT_AGC
+				stableCount++;
+		#endif
+				pilotPresence = PilotPresent;
+	}
 
-#ifdef MPXDECODER_TUNE_PILOT_AGC
-		peakPilotGain = std::max(pilotGain, peakPilotGain);
-#endif
-		FloatType left;
-		FloatType right;
+		#ifdef MPXDECODER_TUNE_PILOT_AGC
+				peakPilotGain = std::max(pilotGain, peakPilotGain);
+		#endif
+				FloatType left;
+				FloatType right;
 
-		double local38k;
+				double local38k;
 
-		if (pilotPresence != PilotPresent) {
-			left = mono;
-			right = mono;
-		} else { // todo: fade from mono to stereo (& back ...)
+				if (pilotPresence != PilotPresent) {
+				left = mono;
+				right = mono;
+	} else { // todo: fade from mono to stereo (& back ...)
 
-			// do the spectrum shift
-			constexpr double scaling = 2.5 * 2;
-			local38k = nco.getDoubled();
+				// do the spectrum shift
+				constexpr double scaling = 2.5 * 2;
+				local38k = nco.getDoubled();
 
-#ifdef MPXDECODER_SAVE_PILOT
-            double pilotOut[2];
-            pilotOut[0] = pilot;
-            pilotOut[1] = local38k;
-            pilotOutFile->write(pilotOut, 2);
-#endif
-			FloatType side = scaling * local38k * sideRaw;
-			nco.sync(pilot);
+		#ifdef MPXDECODER_SAVE_PILOT
+				double pilotOut[2];
+				pilotOut[0] = pilot;
+				pilotOut[1] = local38k;
+				pilotOutFile->write(pilotOut, 2);
+		#endif
+				FloatType side = scaling * local38k * sideRaw;
+				nco.sync(pilot);
 
-			// separate L, R stereo channels
-			left = stereoGain * (mono + stereoWidth * side);
-			right = stereoGain * (mono - stereoWidth * side);
-		}
+				// separate L, R stereo channels
+				left = stereoGain * (mono + stereoWidth * side);
+				right = stereoGain * (mono - stereoWidth * side);
+	}
 
-		if (!lowpassEnabled) {
+				if (!lowpassEnabled) {
 			return {left, right};
 		}
 
@@ -417,7 +417,7 @@ private:
 
 	PilotPresence pilotPresence{PilotPresenceUnknown};
 	bool lowpassEnabled{true}; // do final stereo 15khz LPF or not ?
-    double pilotPeak{0.0};
+	double pilotPeak{0.0};
 	double pilotGain{1.0};
 	double increaseRate;
 	double decreaseRate;
@@ -432,7 +432,7 @@ private:
 #endif
 
 #ifdef MPXDECODER_SAVE_PILOT
-    std::unique_ptr<SndfileHandle> pilotOutFile;
+	std::unique_ptr<SndfileHandle> pilotOutFile;
 #endif
 
 };

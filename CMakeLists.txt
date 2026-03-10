@@ -158,7 +158,8 @@ else()
             link_directories(/usr/local/lib)
         endif()
 
-        add_library(ReSamplerLib SHARED ${SOURCE_FILES})
+		add_library(ReSamplerLib SHARED ${SOURCE_FILES}
+			signalgenerator.h signalgenerator.cpp)
 
         if(CMAKE_BUILD_TYPE STREQUAL "ReleaseQuadmath")
 

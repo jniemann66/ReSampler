@@ -215,13 +215,6 @@ bool checkWarnOutputSize(sf_count_t inputSamples, int bytesPerSample, int numera
 template<typename IntType> std::string fmtNumberWithCommas(IntType n);
 void printSamplePosAsTime(sf_count_t samplePos, unsigned int sampleRate);
 
-void generateExpSweep(const std::string & filename,
-					  int sampleRate = 96000, // samplerate of generated file
-					  int format = SF_FORMAT_WAV | SF_FORMAT_FLOAT, // format of generated file
-					  double duration = 10.0, // approximate duration in seconds
-					  int octaves = 12, // number of octaves below Nyquist for lowest frequency
-					  double amplitude_dB = -3.0 // amplitude in dB relative to FS
-		);
 
 bool getMetaData(MetaData& metadata, SndfileHandle &infile);
 bool setMetaData(const MetaData& metadata, SndfileHandle& outfile);
