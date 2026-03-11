@@ -20,9 +20,8 @@ public:
 	static void generateImpulse(
 			const std::string& filename,
 			int sampleRate = 96000,
-			int format = SF_FORMAT_WAV | SF_FORMAT_FLOAT,
-			int N = 1024,
-			int octaves = 12,
+			int format = SF_FORMAT_WAV | SF_FORMAT_DOUBLE,
+			double duration = 1.0,
 			double amplitude_dB = -3.0
 			);
 };

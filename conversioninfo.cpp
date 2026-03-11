@@ -1,10 +1,20 @@
 #include "conversioninfo.h"
 #include "ditherer.h"
+#include "signalgenerator.h"
 
 #include <algorithm>
 #include <iostream>
+#include <random>
+#include <sstream>
 #include <stdexcept>
 #include <vector>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <cstdio> // P_tmpdir
+#include <cstdlib> // getenv
+#endif
 
 namespace ReSampler {
 
@@ -215,6 +225,7 @@ bool ConversionInfo::fromCmdLineArgs(int argc, char** argv)
     bFadeOut = false;
     fadeInTime = 0.0;
     fadeOutTime = 0.0;
+	exportIR_input_samplerate = 0;
 
 	// get core parameters:
 	getCmdlineParam(argv, argv + argc, "-i", inputFilename);
@@ -246,6 +257,7 @@ bool ConversionInfo::fromCmdLineArgs(int argc, char** argv)
 	bMultiStage = getCmdlineParam(argv, argv + argc, "--multiStage");
 	integerWriteScalingStyle = getCmdlineParam(argv, argv + argc, "--pow2clip") ? IntegerWriteScalingStyle::Pow2Clip : IntegerWriteScalingStyle::Pow2Minus1;
 	getCmdlineParam(argv, argv + argc, "--progress-updates", progressUpdates);
+	getCmdlineParam(argv, argv + argc, "--exportIR", exportIR_input_samplerate);
 
     bDemodulateIQ = getCmdlineParam(argv, argv + argc, "--demodulateIQ");
 	if (bDemodulateIQ) {
@@ -422,6 +434,32 @@ bool ConversionInfo::fromCmdLineArgs(int argc, char** argv)
 	if (outputSampleRate == 0) {
 		std::cout << "Error: Target sample rate not specified" << std::endl;
 		bBadParams = true;
+	}
+
+	if (exportIR_input_samplerate) {
+		// Generate a unique temp filename
+		std::mt19937 rng(std::random_device{}());
+		std::uniform_int_distribution<uint32_t> dist;
+		std::ostringstream oss;
+		oss << std::hex << dist(rng);
+		const std::string randomPart = oss.str();
+
+
+#ifdef _WIN32
+		char tempPath[MAX_PATH];
+		GetTempPathA(MAX_PATH, tempPath);
+		const std::string impulseFile = std::string(tempPath) + randomPart + ".wav";
+#else
+		const char* tmpDir = getenv("TMPDIR");
+		if (!tmpDir) tmpDir = P_tmpdir;
+		const std::string impulseFile = std::string(tmpDir) + "/" + randomPart + ".wav";
+#endif
+
+		// generate 1-second impulse file
+		SignalGenerator::generateImpulse(impulseFile, exportIR_input_samplerate);
+
+		// overwrite input filename with filename of temp file
+		inputFilename = impulseFile;
 	}
 
 	return !bBadParams;

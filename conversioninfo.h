@@ -99,6 +99,7 @@ struct ConversionInfo
     bool bFadeOut;
 	double fadeInTime;
     double fadeOutTime;
+	int exportIR_input_samplerate;
 
 	// functions
 	bool fromCmdLineArgs(int argc, char **argv); // populate ConversionInfo from args

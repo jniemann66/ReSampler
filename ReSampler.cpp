@@ -98,17 +98,6 @@ bool parseGlobalOptions(int argc, char * argv[]) {
 		return true;
 	}
 
-	// (ambitious)
-	// generate a csv containing the final frequency response of the entire conversion process
-	if (getCmdlineParam(argv, argv + argc, "--exportLpfResponse")) {
-		// todo:
-		// 1. generate 4096-sample impulse file
-		// 2. run resampler normally, except instead of reading input file, read from impulse file above
-		// 3. once output file is written, do an fft of it
-		// 4. calculate the magnitude response of the fft, and export it as csv
-		return false; // continue processing after this
-	}
-
 	return false;
 }
 

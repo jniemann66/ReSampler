@@ -59,10 +59,11 @@ void SignalGenerator::generateExpSweep(const std::string& filename, int sampleRa
 
 #endif
 
-void SignalGenerator::generateImpulse(const std::string& filename, int sampleRate, int format, int N, int nOctaves, double amplitude_dB)
+void SignalGenerator::generateImpulse(const std::string& filename, int sampleRate, int format, double duration, double amplitude_dB)
 {
 	double amplitude = pow(10.0, (amplitude_dB / 20.0));
 	SndfileHandle outFile(filename, SFM_WRITE, format, 1, sampleRate);
+	const size_t N = sampleRate * duration;
 	std::vector<double> signal(N, 0.0);
 	signal[(N / 2)] = amplitude;
 
