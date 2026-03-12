@@ -6,6 +6,35 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_compile_definitions(COMPILER_ID="${CMAKE_CXX_COMPILER_ID}" COMPILER_VERSION="${CMAKE_CXX_COMPILER_VERSION}")
 
+set(SOURCE_FILES
+    alignedmalloc.h
+    biquad.h
+    conversioninfo.h
+    csv.h
+    dff.h
+    ditherer.h
+    dsf.h
+    FIRFilter.h
+    fraction.h
+    factorial.h
+    noiseshape.h
+    osspecific.h
+    raiitimer.h
+    ReSampler.cpp
+    ReSampler.h
+    srconvert.h
+    conversioninfo.cpp
+    iqdemodulator.h
+    mpxdecode.h
+    effect.h
+    effectchain.h
+    stereoimager.h
+    fadeeffect.h
+    signalgenerator.h
+    signalgenerator.cpp
+    )
+
+
 if(ANDROID)
     set(BUILD_SHARED_LIBS_SAVED "${BUILD_SHARED_LIBS}")
     set(BUILD_SHARED_LIBS OFF)
@@ -14,34 +43,6 @@ if(ANDROID)
     add_subdirectory (android/src/libsndfile)
     include_directories($CMAKE_SOURCE_DIR/android/src/libsndfile/src)
     set(BUILD_SHARED_LIBS "${BUILD_SHARED_LIBS_SAVED}")
-
-    set(SOURCE_FILES
-        alignedmalloc.h
-        biquad.h
-        conversioninfo.h
-        conversioninfo.cpp
-        csv.h
-        dff.h
-        ditherer.h
-        dsf.h
-        FIRFilter.h
-        fraction.h
-        factorial.h
-        noiseshape.h
-        osspecific.h
-		raiitimer.h:
-        main.cpp
-        ReSampler.cpp
-        ReSampler.h
-        srconvert.h
-        iqdemodulator.h
-        mpxdecode.h
-        effect.h
-        effectchain.h
-        stereoimager.h
-        fadeeffect.h
-        )
-
     add_library(ReSampler SHARED ${SOURCE_FILES})
     target_link_libraries(ReSampler sndfile fftw3 log)
 
@@ -64,34 +65,6 @@ else()
 
         message(STATUS "build type: '${CMAKE_BUILD_TYPE}'")
     endif()
-
-    set(SOURCE_FILES
-        alignedmalloc.h
-        biquad.h
-        conversioninfo.h
-        csv.h
-        dff.h
-        ditherer.h
-        dsf.h
-        FIRFilter.h
-        fraction.h
-        factorial.h
-        noiseshape.h
-        osspecific.h
-        raiitimer.h
-        ReSampler.cpp
-        ReSampler.h
-        srconvert.h
-        conversioninfo.cpp
-        iqdemodulator.h
-        mpxdecode.h
-        effect.h
-        effectchain.h
-        stereoimager.h
-        fadeeffect.h
-		signalgenerator.h
-		signalgenerator.cpp
-        )
 
 	if(WIN32 OR CMAKE_CROSSCOMPILING)
 
