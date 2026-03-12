@@ -89,6 +89,8 @@ else()
         effectchain.h
         stereoimager.h
         fadeeffect.h
+		signalgenerator.h
+		signalgenerator.cpp
         )
 
 	if(WIN32 OR CMAKE_CROSSCOMPILING)
@@ -158,8 +160,7 @@ else()
             link_directories(/usr/local/lib)
         endif()
 
-		add_library(ReSamplerLib SHARED ${SOURCE_FILES}
-			signalgenerator.h signalgenerator.cpp)
+		add_library(ReSamplerLib SHARED ${SOURCE_FILES})
 
         if(CMAKE_BUILD_TYPE STREQUAL "ReleaseQuadmath")
 
