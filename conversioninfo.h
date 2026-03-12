@@ -100,6 +100,7 @@ struct ConversionInfo
 	double fadeInTime;
     double fadeOutTime;
 	int exportIR_input_samplerate;
+	std::string deleteThisFileAfterConversion;
 
 	// functions
 	bool fromCmdLineArgs(int argc, char **argv); // populate ConversionInfo from args

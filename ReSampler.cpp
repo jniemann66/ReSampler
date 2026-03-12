@@ -325,7 +325,16 @@ seek(position, whence)
 template<typename FileReader, typename FloatType>
 bool convert(ConversionInfo& ci)
 {
-    const bool multiThreaded = ci.bMultiThreaded;
+	// this is to fulfil request to clean-up a generated input file, if it exists, upon leaving
+	struct FileDeleter {
+		const ConversionInfo& ci;
+		~FileDeleter() {
+			if (!ci.deleteThisFileAfterConversion.empty()) {
+				std::cout << "deleting temp file: " << ci.deleteThisFileAfterConversion << std::endl;
+				std::remove(ci.deleteThisFileAfterConversion.c_str());
+			}
+		}
+	} fileDeleter{ci};
 
 	// pointer for temp file;
 	SndfileHandle* tmpSndfileHandle = nullptr;
@@ -388,7 +397,7 @@ bool convert(ConversionInfo& ci)
     if (e != SF_ERR_NO_ERROR) {
 		if (e == ERROR_IQFILE_WFM_SAMPLERATE_TOO_LOW) {
             std::cout << "Sample Rate not high enough for WFM" << std::endl;
-        } else if (e == ERROR_IQFILE_TWO_CHANNELS_EXPECTED) {
+		} else if (e == ERROR_IQFILE_TWO_CHANNELS_EXPECTED) {
             std::cout << "2 channels expected for an I/Q input file !" << std::endl;
         } else {
             std::cout << "Error: Couldn't Open Input File (" << sf_error_number(e) << ")" << std::endl;
@@ -410,7 +419,6 @@ bool convert(ConversionInfo& ci)
 
 	// determine conversion ratio:
 	Fraction fraction = getFractionFromSamplerates(ci.inputSampleRate, ci.outputSampleRate);
-
 
 	// set buffer sizes:
     const auto inputChannelBufferSize = static_cast<size_t>(BUFFERSIZE);
@@ -768,7 +776,6 @@ bool convert(ConversionInfo& ci)
         const bool hasOutputFX = !outputChain.empty();
 		// ---
 
-
 		// construct thread pool
 		ctpl::thread_pool threadPool(nChannels);
 		struct Result {
@@ -776,8 +783,6 @@ bool convert(ConversionInfo& ci)
 			FloatType peak;
 		};
 		std::vector<std::future<Result>> results(nChannels);
-
-
 
 		bool eof = false;
 		do { // central conversion loop (the heart of the matter ...)
@@ -826,7 +831,7 @@ bool convert(ConversionInfo& ci)
 					return res;
 				};
 
-				if (multiThreaded) {
+				if (ci.bMultiThreaded) {
 					results[ch] = threadPool.push(processingFunc);
 				} else {
 					Result res = processingFunc(0);
@@ -835,7 +840,7 @@ bool convert(ConversionInfo& ci)
 				}
 			}
 
-			if (multiThreaded) { // collect results:
+			if (ci.bMultiThreaded) { // collect results:
 				for (int ch = 0; ch < nChannels; ++ch) {
 					Result res = results[ch].get();
 					peakOutputSample = std::max(peakOutputSample, res.peak);

@@ -197,6 +197,7 @@ bool parseGlobalOptions(int argc, char * argv[]);
 bool determineBestBitFormat(std::string& bitFormat, const ConversionInfo& ci);
 int determineOutputFormat(const std::string & outFileExt, const std::string & bitFormat);
 void listSubFormats(const std::string & f);
+
 // explicit instantiations - generate all required flavors of convert()
 bool convert_DffFile_Float(ConversionInfo & ci);
 bool convert_DffFile_Double(ConversionInfo & ci);
@@ -206,6 +207,7 @@ bool convert_SndfileHandle_Float(ConversionInfo & ci);
 bool convert_SndfileHandle_Double(ConversionInfo & ci);
 bool convert_IQFile_Float(ConversionInfo & ci);
 bool convert_IQFile_Double(ConversionInfo & ci);
+
 template<typename FileReader, typename FloatType> bool convert(ConversionInfo & ci);
 template<typename FloatType>
 SndfileHandle* getTempFile(int inputFileFormat, int nChannels, const ConversionInfo& ci, std::string& tmpFilename);

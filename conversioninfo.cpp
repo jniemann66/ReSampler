@@ -226,6 +226,7 @@ bool ConversionInfo::fromCmdLineArgs(int argc, char** argv)
     fadeInTime = 0.0;
     fadeOutTime = 0.0;
 	exportIR_input_samplerate = 0;
+	deleteThisFileAfterConversion.clear();
 
 	// get core parameters:
 	getCmdlineParam(argv, argv + argc, "-i", inputFilename);
@@ -460,6 +461,7 @@ bool ConversionInfo::fromCmdLineArgs(int argc, char** argv)
 
 		// overwrite input filename with filename of temp file
 		inputFilename = impulseFile;
+		deleteThisFileAfterConversion = impulseFile;
 	}
 
 	return !bBadParams;
