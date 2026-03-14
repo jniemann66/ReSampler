@@ -24,7 +24,9 @@
 #include <cstdint>
 #include <cassert>
 #include <vector>
+#if !defined(__aarch64__) && !defined(_M_ARM64)
 #include <immintrin.h>
+#endif
 
 #if defined(__ANDROID__)
 #ifndef COMPILING_ON_ANDROID
