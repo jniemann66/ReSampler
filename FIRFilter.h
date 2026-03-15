@@ -24,7 +24,9 @@
 #include <cstdint>
 #include <cassert>
 #include <vector>
-#if !defined(__aarch64__) && !defined(_M_ARM64)
+#if defined(__aarch64__) || defined(_M_ARM64)
+#include <arm_neon.h>
+#else
 #include <immintrin.h>
 #endif
 
@@ -47,8 +49,11 @@
 #define ALIGNMENT_SIZE 16
 
 #if (defined(_M_X64) || defined(__x86_64__) || defined(USE_SSE2)) // All x64 CPUs have SSE2 instructions, but some older 32-bit CPUs do not.
-#define USE_SIMD 1 // Vectorise main loop in FIRFilter::get() by using SSE2 SIMD instrinsics
+#define USE_SIMD 1 // Vectorise main loop in FIRFilter::get() by using SSE2 SIMD intrinsics
 #define USE_SIMD_FOR_DOUBLES
+#elif defined(__aarch64__) || defined(_M_ARM64)
+#define USE_NEON 1 // Vectorise main loop in FIRFilter::get() by using ARM NEON intrinsics
+#define USE_NEON_FOR_DOUBLES
 #endif
 
 #if defined (__MINGW64__) || defined (__MINGW32__) || defined (__GNUC__)
@@ -308,6 +313,34 @@ public:
 		b          = _mm_add_ss(a, b);                 // [C     D     | D+C A+B+C+D]
 		output    += _mm_cvtss_f32(b);                 // A+B+C+D
 
+#elif defined(USE_NEON)
+
+		// NEON processing of float types (doubles require separate specialisation)
+
+		FloatType output = 0.0;
+		int index = currentIndex & -4; // make multiple-of-four
+		int phase = currentIndex & 3;
+		FloatType* kernel = kernelphases[phase];
+
+		float32x4_t s;
+		float32x4_t k;
+		float32x4_t accumulator = vdupq_n_f32(0.0f);
+
+		for (int i = 0; i < paddedLength; i += 4) {
+			s = vld1q_f32(signal + index + i);
+			k = vld1q_f32(kernel + i);
+
+#ifdef USE_FMA
+			accumulator = vfmaq_f32(accumulator, s, k);
+#else
+			float32x4_t product = vmulq_f32(s, k);
+			accumulator = vaddq_f32(product, accumulator);
+#endif
+
+		}
+
+		output += vaddvq_f32(accumulator); // horizontal sum of 4 floats
+
 #else
 		// scalar processing of float or double types
 		FloatType output = 0.0;
@@ -352,7 +385,7 @@ private:
 
 #if defined(USE_AVX)
 	FloatType* kernelphases[8]; // note:  will only use half of these if FloatType = double
-#elif defined(USE_SIMD)
+#elif defined(USE_SIMD) || defined(USE_NEON)
 	FloatType* kernelphases[4]; // note: will only use half of these if FloatType = double
 #else
 	FloatType* kernelphases[1];
@@ -361,7 +394,7 @@ private:
 	void calcPaddedLength()
 	{
 
-#if defined(USE_AVX) || defined(USE_SIMD)
+#if defined(USE_AVX) || defined(USE_SIMD) || defined(USE_NEON)
 		numVecElements = ALIGNMENT_SIZE / sizeof(FloatType);
 #else
 		numVecElements = 1; // Scalar mode
@@ -512,6 +545,41 @@ inline double FIRFilter<double>::get()
 	__m128d shuf  = _mm_castps_pd(shuftmp);
 	output +=  _mm_cvtsd_f64(_mm_add_sd(accumulator, shuf));
 
+	return output;
+}
+
+#elif defined(USE_NEON) && defined(USE_NEON_FOR_DOUBLES) && !defined(FIR_QUAD_PRECISION)
+
+template <>
+inline double FIRFilter<double>::get()
+{
+	// NEON implementation: processes two doubles at a time.
+
+	double output = 0.0;
+	double* kernel;
+	int index = currentIndex & -2; // make multiple-of-two
+	int phase = currentIndex & 1;
+	kernel = kernelphases[phase];
+
+	float64x2_t s;
+	float64x2_t k;
+	float64x2_t accumulator = vdupq_n_f64(0.0);
+
+	for (int i = 0; i < paddedLength; i += 2) {
+		s = vld1q_f64(signal + index + i);
+		k = vld1q_f64(kernel + i);
+
+#ifdef USE_FMA
+		accumulator = vfmaq_f64(accumulator, s, k);
+#else
+		float64x2_t product = vmulq_f64(s, k);
+		accumulator = vaddq_f64(product, accumulator);
+#endif
+
+	}
+
+	// horizontal add of two doubles
+	output += vgetq_lane_f64(accumulator, 0) + vgetq_lane_f64(accumulator, 1);
 	return output;
 }
 
