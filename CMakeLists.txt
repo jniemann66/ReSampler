@@ -86,85 +86,85 @@ else()
 			HINTS ${SNDFILE_DIR}
 		)
 
-		message(STATUS "libsndfile library location: " ${SNDFILE_LIBRARY})
+	message(STATUS "libsndfile library location: " ${SNDFILE_LIBRARY})
 
-		add_library(ReSamplerLib ${SOURCE_FILES})
+	add_library(ReSamplerLib ${SOURCE_FILES})
 
-		if(MSVC)
-			message(STATUS "Visual Studio")
-			target_link_libraries(ReSamplerLib libsndfile.lib libfftw3-3.lib ${CMAKE_THREAD_LIBS_INIT})
+	if(MSVC)
+		message(STATUS "Visual Studio")
+		target_link_libraries(ReSamplerLib libsndfile.lib libfftw3-3.lib ${CMAKE_THREAD_LIBS_INIT})
 
-			if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
-				# create additional 64-bit config: ReleaseAVX
-				set(CMAKE_CONFIGURATION_TYPES "Debug;Release;ReleaseAVX" CACHE STRING "" FORCE)
+		if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
+			# create additional 64-bit config: ReleaseAVX
+			set(CMAKE_CONFIGURATION_TYPES "Debug;Release;ReleaseAVX" CACHE STRING "" FORCE)
 
-				# add /arch:AVX and /DUSE_AVX flags for ReleaseAVX configuration
-				set(CMAKE_CXX_FLAGS_RELEASEAVX ${CMAKE_CXX_FLAGS_RELEASE_INIT} " /arch:AVX /DUSE_AVX")
+			# add /arch:AVX and /DUSE_AVX flags for ReleaseAVX configuration
+			set(CMAKE_CXX_FLAGS_RELEASEAVX ${CMAKE_CXX_FLAGS_RELEASE_INIT} " /arch:AVX /DUSE_AVX")
 
-				# same linker flags
-				set(CMAKE_EXE_LINKER_FLAGS_RELEASEAVX ${CMAKE_EXE_LINKER_FLAGS_RELEASE_INIT})
-				set(CMAKE_SHARED_LINKER_FLAGS_RELEASEAVX ${CMAKE_SHARED_LINKER_FLAGS_RELEASE})
-			endif()
-
-		else()
-			message(STATUS "mingw dll location is here: ${MINGW_PREFIX}/bin")
-			if(CMAKE_BUILD_TYPE STREQUAL "ReleaseQuadmath")
-				set(CMAKE_CXX_EXTENSIONS TRUE) # -std=gnu++11 instead of -std=c++11
-				message(STATUS "Linking with Quadmath library")
-				target_link_libraries(ReSamplerLib ${SNDFILE_LIBRARY} libfftw3-3 libquadmath ${CMAKE_THREAD_LIBS_INIT})
-			else()
-				target_link_libraries(ReSamplerLib ${SNDFILE_LIBRARY} libfftw3-3 ${CMAKE_THREAD_LIBS_INIT})
-			endif()
+			# same linker flags
+			set(CMAKE_EXE_LINKER_FLAGS_RELEASEAVX ${CMAKE_EXE_LINKER_FLAGS_RELEASE_INIT})
+			set(CMAKE_SHARED_LINKER_FLAGS_RELEASEAVX ${CMAKE_SHARED_LINKER_FLAGS_RELEASE})
 		endif()
 
 	else()
-
-		# Not Windows ...
-
-		if(APPLE)
-		    if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm64")
-			message("Building on Apple Silicon (ARM64)")
-				# AVX/AVX2 are x86 extensions - remove them for ARM64 builds
-				string(REPLACE "-DUSE_AVX" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-				string(REPLACE "-mavx2" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-				set(CMAKE_CXX_FLAGS_RELEASEAVX "${CMAKE_CXX_FLAGS_RELEASE_INIT}")
-				# headers and libraries: this is where homebrew puts them on Arm Macs:
-				include_directories(/opt/homebrew/include)
-				link_directories(/opt/homebrew/lib)
-		    elseif("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
-				# This might be an Intel Mac, or an Apple Silicon Mac running CMake via Rosetta 2
-				message("Building on Intel or via Rosetta (x86_64)")
-				# since Mojave, cmake no longer finds these automatically:
-				# (see https://stackoverflow.com/questions/54068035/linking-not-working-in-homebrews-cmake-since-mojave)
-				include_directories(/usr/local/include)
-				link_directories(/usr/local/lib)
-		    endif()
-		endif()
-
-		add_library(ReSamplerLib SHARED ${SOURCE_FILES})
-
+		message(STATUS "mingw dll location is here: ${MINGW_PREFIX}/bin")
 		if(CMAKE_BUILD_TYPE STREQUAL "ReleaseQuadmath")
+			set(CMAKE_CXX_EXTENSIONS TRUE) # -std=gnu++11 instead of -std=c++11
+			message(STATUS "Linking with Quadmath library")
+			target_link_libraries(ReSamplerLib ${SNDFILE_LIBRARY} libfftw3-3 libquadmath ${CMAKE_THREAD_LIBS_INIT})
+		else()
+			target_link_libraries(ReSamplerLib ${SNDFILE_LIBRARY} libfftw3-3 ${CMAKE_THREAD_LIBS_INIT})
+		endif()
+	endif()
 
-			# cmake >=3.19:
-			# include(CheckSourceCompiles)
-			# check_source_compiles(
-			# 	"#include <quadmath.h>\nint main() {return quadmath_atan(1.0Q);}"
-			# 	QUADMATH_AVAILABLE
-			# )
+else()
 
-			# Search for the quadmath header file
-			include(CheckIncludeFile)
-			check_include_file("quadmath.h" HAVE_QUADMATH_HEADER)
+	# Not Windows ...
 
-			# Search for the quadmath library
-			find_library(HAVE_QUADMATH_LIBRARY quadmath) # 2026-01-16 : fails to detect
+	if(APPLE)
+		if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm64")
+			message("Building on Apple Silicon (ARM64)")
+			# AVX/AVX2 are x86 extensions - remove them for ARM64 builds
+			string(REPLACE "-DUSE_AVX" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+			string(REPLACE "-mavx2" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+			set(CMAKE_CXX_FLAGS_RELEASEAVX "${CMAKE_CXX_FLAGS_RELEASE_INIT}")
+			# headers and libraries: this is where homebrew puts them on Arm Macs:
+			include_directories(/opt/homebrew/include)
+			link_directories(/opt/homebrew/lib)
+		elseif("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
+			# This might be an Intel Mac, or an Apple Silicon Mac running CMake via Rosetta 2
+			message("Building on Intel or via Rosetta (x86_64)")
+			# since Mojave, cmake no longer finds these automatically:
+			# (see https://stackoverflow.com/questions/54068035/linking-not-working-in-homebrews-cmake-since-mojave)
+			include_directories(/usr/local/include)
+			link_directories(/usr/local/lib)
+		endif()
+	endif()
 
-			if(HAVE_QUADMATH_HEADER)
-				message(STATUS "Linking with Quadmath library")
-				set(CMAKE_CXX_EXTENSIONS TRUE) # -std=gnu++11 instead of -std=c++11
-				target_link_libraries(ReSamplerLib sndfile fftw3 quadmath ${CMAKE_THREAD_LIBS_INIT})
-			else()
-				message(STATUS "Quadmath is not available. (Try installing a package such as 'libquadmath-devel'")
+	add_library(ReSamplerLib SHARED ${SOURCE_FILES})
+
+	if(CMAKE_BUILD_TYPE STREQUAL "ReleaseQuadmath")
+
+		# cmake >=3.19:
+		# include(CheckSourceCompiles)
+		# check_source_compiles(
+		# 	"#include <quadmath.h>\nint main() {return quadmath_atan(1.0Q);}"
+		# 	QUADMATH_AVAILABLE
+		# )
+
+		# Search for the quadmath header file
+		include(CheckIncludeFile)
+		check_include_file("quadmath.h" HAVE_QUADMATH_HEADER)
+
+		# Search for the quadmath library
+		find_library(HAVE_QUADMATH_LIBRARY quadmath) # 2026-01-16 : fails to detect
+
+		if(HAVE_QUADMATH_HEADER)
+			message(STATUS "Linking with Quadmath library")
+			set(CMAKE_CXX_EXTENSIONS TRUE) # -std=gnu++11 instead of -std=c++11
+			target_link_libraries(ReSamplerLib sndfile fftw3 quadmath ${CMAKE_THREAD_LIBS_INIT})
+		else()
+			message(STATUS "Quadmath is not available. (Try installing a package such as 'libquadmath-devel'")
 			endif()
 
 		else()
