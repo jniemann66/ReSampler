@@ -128,7 +128,9 @@ else()
 			string(REPLACE "-DUSE_AVX" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 			string(REPLACE "-mavx2" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 			set(CMAKE_CXX_FLAGS_RELEASEAVX "${CMAKE_CXX_FLAGS_RELEASE_INIT}")
-
+			# headers and libraries: this is where homebrew puts them on Arm Macs:
+			include_directories(/opt/homebrew/include)
+			link_directories(/opt/homebrew/lib)
 		    elseif("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
 			# This might be an Intel Mac, or an Apple Silicon Mac running CMake via Rosetta 2
 			message("Building on Intel or via Rosetta (x86_64)")

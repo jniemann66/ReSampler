@@ -44,17 +44,27 @@ and use one of the following command lines to compile:
 clang++ -pthread -std=c++11 main.cpp ReSampler.cpp conversioninfo.cpp -lfftw3 -lsndfile -o ReSampler-clang -O3 -L/usr/local/lib -I/usr/local/include
 ~~~
 
-AVX Build:
+AVX Build (Intel):
 ~~~
 clang++ -pthread -std=c++11 main.cpp ReSampler.cpp conversioninfo.cpp -lfftw3 -lsndfile -o ReSampler -O3 -DUSE_AVX -mavx -L/usr/local/lib -I/usr/local/include
 ~~~
 
-AVX + FMA Build:
+AVX + FMA Build (Intel):
 ~~~
 clang++ -pthread -std=c++11 main.cpp ReSampler.cpp conversioninfo.cpp -lfftw3 -lsndfile -o ReSampler -O3 -DUSE_AVX -DUSE_FMA -mavx -mfma -L/usr/local/lib -I/usr/local/include
 ~~~
 
 #### using cmake:
+
+exporting the path of includes and libraries (assuming that homebrew puts them in /opt/homebrew)
+~~~
+# export the include and library paths (assuming shell is zsh)
+echo 'export CPATH="/opt/homebrew/include"\nexport LIBRARY_PATH="/opt/homebrew/lib"\n' >> ~/.zshrc && source ~/.zshrc
+~~~
+
+note: this will only export the paths for subsequent zsh sessions,
+(The std /opt/hombrew/... paths are now in the CMakeLists.txt file. if you have them installed in a different place, then adjust accordingly)
+
 ~~~
 cd path-to-where-you-want-the-binary
 cmake -DCMAKE_BUILD_TYPE=Release path-to-ReSampler

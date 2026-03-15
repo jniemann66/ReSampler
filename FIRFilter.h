@@ -15,7 +15,6 @@
 #include "alignedmalloc.h"
 #include "factorial.h"
 
-#include <typeinfo>
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
@@ -24,6 +23,7 @@
 #include <cstdint>
 #include <cassert>
 #include <vector>
+
 #if defined(__aarch64__) || defined(_M_ARM64)
 #include <arm_neon.h>
 #else
