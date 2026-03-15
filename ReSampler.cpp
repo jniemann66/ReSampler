@@ -1343,7 +1343,7 @@ bool showBuildVersion() {
 
 #elif defined(__aarch64__)
 	/* 64-bit Arm */
-	std::cout << " Arm Neon build ... ";
+    std::cout << "64-bit version (ARM64)" << std::endl;
 
 #else
 	/* 32-bit */
