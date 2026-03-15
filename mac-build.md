@@ -71,6 +71,22 @@ cmake -DCMAKE_BUILD_TYPE=Release path-to-ReSampler
 make
 ~~~
 
+Alternative approach (in-source build):
+~~~
+cd <ReSampler-source-folder>
+# make a build subfolder
+mkdir build
+cd build
+# ask cmake to get the source files from parent directory, and build right here (current directory)
+cmake -S .. -B . -DCMAKE_BUILD_TYPE=Release
+cmake --build .
+~~~
+
+copy your newly-built binary to somewhere where you can run it from (eg ~/.local/bin/)
+~~~
+cp ~/ReSampler/build/ReSampler ~/.local/bin/
+~~~
+
 #### Using CMake inside an IDE
 
 *for IDEs that support CMake, it is usually very easy to simply open the CMakeLists file and start building*
