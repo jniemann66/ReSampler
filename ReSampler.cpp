@@ -1328,7 +1328,8 @@ bool checkAVX() {
 
 bool showBuildVersion() {
 	std::cout << strVersion << " ";
-#if defined(_M_X64) || defined(__x86_64__) || defined(__aarch64__)
+#if defined(_M_X64) || defined(__x86_64__)
+	/* 64-bit Intel */
 	std::cout << "64-bit version";
 #ifdef USE_AVX
 	std::cout << " AVX build ... ";
@@ -1339,7 +1340,13 @@ bool showBuildVersion() {
 #endif
 #endif // USE_AVX
 	std::cout << std::endl;
+
+#elif defined(__aarch64__)
+	/* 64-bit Arm */
+	std::cout << " Arm Neon build ... ";
+
 #else
+	/* 32-bit */
 	std::cout << "32-bit version";
 #if defined(USE_SSE2)
 	std::cout << ", SSE2 build ... ";
@@ -1351,7 +1358,6 @@ bool showBuildVersion() {
 #endif
 	return true;
 }
-
 
 void showCompiler()
 {

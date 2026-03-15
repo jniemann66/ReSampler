@@ -76,7 +76,6 @@ template <typename FloatType>
 class FIRFilter {
 
 public:
-
 	// constructor:
 	FIRFilter(const FloatType* taps, int length)
 		: length(length), signal(nullptr), currentIndex(length - 1), lastPut(0)
