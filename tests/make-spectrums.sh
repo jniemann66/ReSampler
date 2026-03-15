@@ -24,9 +24,8 @@ then
     #  series  #
     #----------#
     
-    # sndspec.exe c:\Tests\impulse.wav --spectrum -t 0.0 1.0 -W rectangular -w 3840 -h 2160
-    #find ./outputs -type f ! -name '*.png' ! -name '*.txt' -exec $spectrogram_tool --dyn-range=190 '{}' 1200 960 '{}'.png \;
-    find ./outputs -type f ! -name '*.png' ! -name '*.txt' -exec $spectrogram_tool --dyn-range=190 '{}' --peak-selection 1 --spectrum -t 0.0 0.1 -W rectangular -w 1024 -h 768 '{}'.png \;
+    # take the spectrum from 0s to 1.0s using rectangular window. Mark the location of the peak.
+    find ./outputs -type f ! -name '*.png' ! -name '*.txt' -exec $spectrogram_tool --dyn-range=190 '{}' --peak-selection 1 --spectrum -t 0.0 1.0 -W rectangular -w 1024 -h 768 '{}'.png \;
     
 else 
     #----------#
