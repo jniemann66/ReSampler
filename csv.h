@@ -13,13 +13,12 @@
 #define RESAMPLER_CSV_H
 
 #include <algorithm>
-#include <iostream>
-#include <iomanip>
 #include <cassert>
-#include <cstdint>
-#include <string>
-#include <fstream>
 #include <cmath>
+#include <cstdint>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
 #include <string>
 
 namespace ReSampler {
