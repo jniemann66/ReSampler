@@ -152,6 +152,8 @@ On a multi-core system, this makes better use of available CPU resources and res
 *By default, ReSampler will attempt to copy native metadata from the input file to the output file, provided the input and output file types support metadata 
 (ie: wav, aiff, caf, flac, oga, rf64)*
 
+**--maxStages &lt;n&gt;** : set the maximum number of stages used by multi-stage conversion (range 1–10, default 3).
+
 **--singleStage** : use single-stage conversion engine (significantly less efficient and therefore slower, but "simpler" conversion)
 
 **--multiStage** : use multi-stage conversion engine
@@ -171,6 +173,8 @@ the entire conversion will need to be performed again if clipping is detected.
 **--raw-input &lt;samplerate&gt; &lt;bit-format&gt; [number of channels]** : read raw input data (ie with no header). Since there is no header, you must specify the sample rate, bit format, and number of channels of the input file using the syntax above. If the number of channels is omitted, single-channel (mono) input is assumed. Accepted bit formats for raw input are: 8, s8, u8, 16, 24, 32, 32f, 64f, alaw, ulaw, gsm610, dwvw12, dwvw16, dwvw24, vox-adpcm
 
 **--progress-updates &lt;0..100&gt;** : number of progress update notifications to be sent by the converter throughout the conversion. (0 = no updates, 100 = every 1% etc). Default is 10
+
+**--exportIR &lt;samplerate&gt;** : export the impulse response. Internally generates a 1-second impulse signal at the specified sample rate and uses it as the input for conversion, so the output file contains the converter's impulse response at the target sample rate. Useful for analysing the filter characteristics (e.g. frequency and phase response) of a given conversion.
 
 **--demodulateIQ [&lt;AM|LSB|USB|NFM|WFM&gt;]** : *(since 2.1.0)* demodulate an I/Q signal using the specified modulation scheme. If no modulation scheme is specified, default to NFM (Narrowband FM). The I (In-phase) and Q (Quadrature) components are expected to be in channels 0 and 1 respectively. Output file will contain a single channel, except in the case of WFM (Wideband FM), which will be in stereo. 
 
