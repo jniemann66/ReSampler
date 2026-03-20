@@ -88,6 +88,8 @@ from the command line, the main options are as follows:
 
 **--showDitherProfiles** : show a list of all available dither profiles.
 
+**-i &lt;inputfile&gt; --info** : display header and metadata information for the input file, without performing any conversion. See [--info option](./info-option.md) for details.
+
 **--gain &lt;amount&gt;** : adjust the gain (amplification factor). 1.0 = unity gain (no amplification), -1.0 = invert signal, 0 = silence. Note: if clipping protection is enabled, gain will be automatically re-adjusted after the first pass if clipping occurs. 
 
 Note: Setting the gain differs from applying normalization in that normalization is a type of *automatic* gain control, which sets the gain to whatever it needs to be to achieve the requested output level.
