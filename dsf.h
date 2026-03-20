@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
+#include <iomanip>
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -152,6 +153,36 @@ namespace ReSampler {
 			return err;
 		}
 
+		// printInfo() : grabs all the info it can from the file chunks and prints it to stdout
+		void printInfo() const
+		{
+			static const char* channelTypeNames[] = {
+				"(unknown)", "Mono", "Stereo", "3-channel", "Quad", "4-channel", "5-channel", "5.1"
+			};
+			const char* chTypeName = (dsfFmtChunk.channelType < 8) ? channelTypeNames[dsfFmtChunk.channelType] : "(unknown)";
+
+			std::cout << "[DSF Header]\n";
+			std::cout << "Format version   : " << dsfFmtChunk.version << std::endl;
+			std::cout << "Format ID        : " << dsfFmtChunk.formatID << std::endl;
+			std::cout << "Channel type     : " << dsfFmtChunk.channelType << " (" << chTypeName << ")" << std::endl;
+			std::cout << "Channels         : " << dsfFmtChunk.numChannels << std::endl;
+			std::cout << "Sample rate      : " << dsfFmtChunk.sampleRate << " Hz" << std::endl;
+			std::cout << "Bit order        : " << dsfFmtChunk.bitOrder << (dsfFmtChunk.bitOrder == 8 ? " (MSB first)" : " (LSB first)") << std::endl;
+			std::cout << "Samples/channel  : " << dsfFmtChunk.numSamples << std::endl;
+			std::cout << "Block size       : " << dsfFmtChunk.blockSize << " bytes" << std::endl;
+			std::cout << "File size        : " << dsfDSDChunk.filesize << " bytes" << std::endl;
+			if (dsfFmtChunk.sampleRate > 0) {
+				double dur = static_cast<double>(dsfFmtChunk.numSamples) / dsfFmtChunk.sampleRate;
+				std::cout << "Duration         : " << std::fixed << std::setprecision(6) << dur << " s" << std::endl;
+			}
+			if (dsfDSDChunk.metadataPtr != 0) {
+				std::cout << "ID3v2 metadata   : present (offset " << dsfDSDChunk.metadataPtr << ")" << std::endl;
+			} else {
+				std::cout << "ID3v2 metadata   : none" << std::endl;
+			}
+			std::cout << std::endl;
+		}
+
 		unsigned int channels() const
 		{
 			return numChannels;
@@ -182,7 +213,6 @@ namespace ReSampler {
 		template<typename FloatType>
 		uint64_t read(FloatType* buffer, uint64_t count)
 		{
-
 			/*
 
 			In a dsf file,

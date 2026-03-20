@@ -46,29 +46,204 @@
 
 namespace ReSampler {
 
-// parseGlobalOptions() - result indicates whether to terminate.
+// printFileInfo() : open an audio file read-only and dump all available header and metadata to stdout.
+void printFileInfo(const std::string& filename)
+{
+	// detect DSF / DFF by extension and use native readers
+	std::string ext;
+	if (auto dot = filename.find_last_of('.'); dot != std::string::npos) {
+		ext = filename.substr(dot + 1);
+		std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+	}
+
+	if (ext == "dsf") {
+		DsfFile f(filename);
+		if (f.error()) {
+			std::cout << "Error: couldn't open DSF file \"" << filename << "\"" << std::endl;
+		} else {
+			f.printInfo();
+		}
+		return;
+	}
+
+	if (ext == "dff") {
+		DffFile f(filename);
+		if (f.error()) {
+			std::cout << "Error: couldn't open DFF file \"" << filename << "\"" << std::endl;
+		} else {
+			f.printInfo();
+		}
+		return;
+	}
+
+	// libsndfile path for everything else
+	SF_INFO sfinfo{};
+	sfinfo.format = 0;
+	SNDFILE* sf = sf_open(filename.c_str(), SFM_READ, &sfinfo);
+
+	if (!sf) {
+		std::cout << "Error: couldn't open \"" << filename << "\": " << sf_strerror(nullptr) << std::endl;
+		return;
+	}
+
+	// read the libsndfile internal parse log
+	{
+		std::vector<char> logbuf(16384, 0);
+		sf_command(sf, SFC_GET_LOG_INFO, logbuf.data(), static_cast<int>(logbuf.size()));
+		if (logbuf[0] != '\0') {
+			std::cout << "[libsndfile parse log]\n" << logbuf.data() << std::endl;
+		}
+	}
+
+	// read the format info
+	{
+		SF_FORMAT_INFO fi{};
+		fi.format = sfinfo.format & SF_FORMAT_TYPEMASK;
+		sf_command(nullptr, SFC_GET_FORMAT_INFO, &fi, sizeof(fi));
+		const char* fmtName = fi.name ? fi.name : "(unknown)";
+
+		SF_FORMAT_INFO si{};
+		si.format = sfinfo.format & SF_FORMAT_SUBMASK;
+		sf_command(nullptr, SFC_GET_FORMAT_INFO, &si, sizeof(si));
+		const char* subName = si.name ? si.name : "(unknown)";
+
+		std::cout << "[Format]\n";
+		std::cout << "Format    : " << fmtName << std::endl;
+		std::cout << "Sub-type  : " << subName << std::endl;
+		std::cout << "Channels  : " << sfinfo.channels << std::endl;
+		std::cout << "Samplerate: " << sfinfo.samplerate << " Hz" << std::endl;
+		std::cout << "Frames    : " << sfinfo.frames << std::endl;
+		if (sfinfo.samplerate > 0) {
+			double dur = static_cast<double>(sfinfo.frames) / sfinfo.samplerate;
+			std::cout << "Duration  : " << std::fixed << std::setprecision(6) << dur << " s" << std::endl;
+		}
+		std::cout << "Sections  : " << sfinfo.sections << std::endl;
+		std::cout << "Seekable  : " << (sfinfo.seekable ? "yes" : "no") << std::endl;
+		std::cout << std::endl;
+	}
+
+	// read the standard metadata strings
+	{
+		const struct { int tag; const char* label; } strTags[] = {
+			{ SF_STR_TITLE,       "Title"       },
+			{ SF_STR_COPYRIGHT,   "Copyright"   },
+			{ SF_STR_SOFTWARE,    "Software"    },
+			{ SF_STR_ARTIST,      "Artist"      },
+			{ SF_STR_COMMENT,     "Comment"     },
+			{ SF_STR_DATE,        "Date"        },
+			{ SF_STR_ALBUM,       "Album"       },
+			{ SF_STR_LICENSE,     "License"     },
+			{ SF_STR_TRACKNUMBER, "Track Number"},
+			{ SF_STR_GENRE,       "Genre"       },
+		};
+		bool anyStr = false;
+		for (const auto& t : strTags) {
+			const char* val = sf_get_string(sf, t.tag);
+			if (val && val[0] != '\0') {
+				if (!anyStr) { std::cout << "[Metadata strings]\n"; anyStr = true; }
+				std::cout << std::left << std::setw(14) << t.label << ": " << val << std::endl;
+			}
+		}
+		if (anyStr) std::cout << std::endl;
+	}
+
+	// read the Broadcast Extension (bext) chunk
+	{
+		SF_BROADCAST_INFO bext{};
+		if (sf_command(sf, SFC_GET_BROADCAST_INFO, &bext, sizeof(bext)) == SF_TRUE) {
+			std::cout << "[Broadcast Extension (bext)]\n";
+			std::cout << "Description          : " << std::string(bext.description, 256).c_str() << std::endl;
+			std::cout << "Originator           : " << std::string(bext.originator, 32).c_str() << std::endl;
+			std::cout << "Originator reference : " << std::string(bext.originator_reference, 32).c_str() << std::endl;
+			std::cout << "Origination date     : " << std::string(bext.origination_date, 10).c_str() << std::endl;
+			std::cout << "Origination time     : " << std::string(bext.origination_time, 8).c_str() << std::endl;
+			std::cout << "Time reference       : "
+				<< (static_cast<int64_t>(bext.time_reference_high) << 32 | bext.time_reference_low)
+				<< " samples" << std::endl;
+			std::cout << "Version              : " << bext.version << std::endl;
+			if (bext.coding_history[0] != '\0') {
+				std::cout << "Coding history       : " << bext.coding_history << std::endl;
+			}
+			std::cout << std::endl;
+		}
+	}
+
+	// read loop info
+	{
+		SF_LOOP_INFO li{};
+		if (sf_command(sf, SFC_GET_LOOP_INFO, &li, sizeof(li)) == SF_TRUE) {
+			std::cout << "[Loop Info]\n";
+			std::cout << "Time signature : " << li.time_sig_num << "/" << li.time_sig_den << std::endl;
+			std::cout << "Loop mode      : " << li.loop_mode << std::endl;
+			std::cout << "Num beats      : " << li.num_beats << std::endl;
+			std::cout << "BPM            : " << li.bpm << std::endl;
+			std::cout << "Root key       : " << li.root_key << std::endl;
+			std::cout << std::endl;
+		}
+	}
+
+	// read Instrument / sampler info
+	{
+		SF_INSTRUMENT inst{};
+		if (sf_command(sf, SFC_GET_INSTRUMENT, &inst, sizeof(inst)) == SF_TRUE) {
+			std::cout << "[Instrument]\n";
+			std::cout << "Gain          : " << inst.gain << std::endl;
+			std::cout << "Base note     : " << static_cast<int>(inst.basenote) << std::endl;
+			std::cout << "Detune        : " << static_cast<int>(inst.detune) << std::endl;
+			std::cout << "Velocity lo/hi: " << static_cast<int>(inst.velocity_lo) << " / " << static_cast<int>(inst.velocity_hi) << std::endl;
+			std::cout << "Key lo/hi     : " << static_cast<int>(inst.key_lo) << " / " << static_cast<int>(inst.key_hi) << std::endl;
+			std::cout << "Loop count    : " << inst.loop_count << std::endl;
+			for (int i = 0; i < inst.loop_count && i < 16; ++i) {
+				std::cout << "  Loop[" << i << "] mode=" << inst.loops[i].mode
+					<< " start=" << inst.loops[i].start
+					<< " end=" << inst.loops[i].end
+					<< " count=" << inst.loops[i].count << std::endl;
+			}
+			std::cout << std::endl;
+		}
+	}
+
+	// read Cue points
+	{
+		SF_CUES cues{};
+		if (sf_command(sf, SFC_GET_CUE, &cues, sizeof(cues)) == SF_TRUE && cues.cue_count > 0) {
+			std::cout << "[Cue Points] (" << cues.cue_count << ")\n";
+			for (uint32_t i = 0; i < cues.cue_count; ++i) {
+				const SF_CUE_POINT& cp = cues.cue_points[i];
+				std::cout << "  [" << i << "] indx=" << cp.indx
+					<< " sample_offset=" << cp.sample_offset
+					<< " name=\"" << cp.name << "\"" << std::endl;
+			}
+			std::cout << std::endl;
+		}
+	}
+
+	sf_close(sf);
+}
+
+// parseGlobalOptions() : result indicates whether to terminate.
 bool parseGlobalOptions(int argc, char * argv[]) {
 
-	// help switch:
+	// help switch
 	if (getCmdlineParam(argv, argv + argc, "--help") || getCmdlineParam(argv, argv + argc, "-h")) {
 		std::cout << strUsage << std::endl;
 		std::cout << "Additional options:\n\n" << strExtraOptions << std::endl;
 		return true;
 	}
 
-	// version switch:
+	// version switch
 	if (getCmdlineParam(argv, argv + argc, "--version")) {
 		std::cout << strVersion << std::endl;
 		return true;
 	}
 
-	// compiler switch:
+	// compiler switch
 	if (getCmdlineParam(argv, argv + argc, "--compiler")) {
 		showCompiler();
 		return true;
 	}
 
-	// sndfile-version switch:
+	// sndfile-version switch
 	if (getCmdlineParam(argv, argv + argc, "--sndfile-version")) {
 		char s[128];
 		sf_command(nullptr, SFC_GET_LIB_VERSION, s, sizeof(s));
@@ -95,6 +270,18 @@ bool parseGlobalOptions(int argc, char * argv[]) {
 		std::string filename;
 		getCmdlineParam(argv, argv + argc, "--generate", filename);
 		SignalGenerator::generateExpSweep(filename);
+		return true;
+	}
+
+	// info dump
+	if (getCmdlineParam(argv, argv + argc, "--info")) {
+		std::string filename;
+		getCmdlineParam(argv, argv + argc, "-i", filename);
+		if (filename.empty()) {
+			std::cout << "Usage: --info -i <inputfile>" << std::endl;
+		} else {
+			printFileInfo(filename);
+		}
 		return true;
 	}
 
@@ -247,7 +434,7 @@ int determineOutputFormat(const std::string& outFileExt, const std::string& bitF
 	return format;
 }
 
-// listSubFormats() - lists all valid subformats for a given file extension (without "." or "*."):
+// listSubFormats()  lists all valid subformats for a given file extension (without "." or "*."):
 void listSubFormats(const std::string& f)
 {
 	if (SF_FORMAT_INFO info; getMajorFormatFromFileExt(&info, f)) {

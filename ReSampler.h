@@ -46,6 +46,7 @@ const std::string strExtraOptions(
 		"--sndfile-version\n"
 		"--listsubformats <ext>\n"
 		"--showDitherProfiles\n"
+		"--info\n"
 		"--gain [<amount>]\n"
 		"--doubleprecision\n"
 		"--dither [<amount>] [--autoblank] [--ns [<ID>]] [--flat-tpdf] [--seed [<num>]] [--quantize-bits <number of bits>]\n"

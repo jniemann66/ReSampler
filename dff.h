@@ -20,8 +20,10 @@
 #include <cassert>
 #include <cstdint>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <string>
+#include <utility>
 
 #define DFF_MAX_CHANNELS 6 
 #define DFF_FORMAT 0x00300000 // note: take care to make sure this doesn't clash with future libsndfile formats (unlikely)
@@ -208,6 +210,73 @@ public:
 	bool error() const
 	{
 		return err;
+	}
+
+	// printInfo() : grabs all the info it can from the file chunks and prints it to stdout
+	void printInfo() const
+	{
+		// helper: decode a big-endian 4-char chunk ID to a printable string
+		auto ckidStr = [](uint32_t id) -> std::string {
+			char s[5];
+			s[0] = (id >> 24) & 0xFF;
+			s[1] = (id >> 16) & 0xFF;
+			s[2] = (id >>  8) & 0xFF;
+			s[3] = (id      ) & 0xFF;
+			s[4] = '\0';
+			return std::string(s);
+		};
+
+		// version: stored as 0xMMmmpppp (major, minor, patch, patch)
+		uint32_t v = formDSDChunk.formatVersionChunk.version;
+		int vMaj = (v >> 24) & 0xFF;
+		int vMin = (v >> 16) & 0xFF;
+
+		// loudspeaker config lookup
+		static const std::pair<uint16_t, const char*> lscoNames[] = {
+			{0x0000, "Undefined"},
+			{0x0003, "Mono"},
+			{0x0004, "Stereo"},
+			{0x0005, "3 Front channels"},
+			{0x0006, "Quad"},
+			{0x000A, "5 channels"},
+			{0x000B, "5.1"},
+			{0xFFFF, "Not indicated"},
+		};
+
+		uint16_t lsco = formDSDChunk.propertyChunk.loudspeakerConfigurationChunk.lsConfig;
+		const char* lscoName = "(unknown)";
+		for (const auto& e : lscoNames) {
+			if (e.first == lsco) { lscoName = e.second; break; }
+		}
+
+		const auto& abss = formDSDChunk.propertyChunk.absoluteStartTimeChunk;
+		const auto& cmpr = formDSDChunk.propertyChunk.compressionTypeChunk;
+
+		std::cout << "[DFF Header]\n";
+		std::cout << "DSDIFF version   : " << vMaj << "." << vMin << std::endl;
+		std::cout << "Channels         : " << numChannels << std::endl;
+
+		const auto& chnl = formDSDChunk.propertyChunk.channelsChunk;
+		for (uint16_t c = 0; c < chnl.numChannels && c < DFF_MAX_CHANNELS; ++c) {
+			std::cout << "  Channel[" << c << "]    : " << ckidStr(chnl.channelID[c]) << std::endl;
+		}
+
+		std::cout << "Sample rate      : " << _sampleRate << " Hz" << std::endl;
+		std::cout << "Frames           : " << numFrames << std::endl;
+		if (_sampleRate > 0) {
+			double dur = static_cast<double>(numFrames) / _sampleRate;
+			std::cout << "Duration         : " << std::fixed << std::setprecision(6) << dur << " s" << std::endl;
+		}
+		std::cout << "Compression      : " << ckidStr(cmpr.compressionType)
+			<< " (\"" << cmpr.compressionName << "\")" << std::endl;
+		std::cout << "Loudspeaker cfg  : 0x" << std::hex << std::setw(4) << std::setfill('0') << lsco
+			<< std::dec << " (" << lscoName << ")" << std::endl;
+		std::cout << "Absolute start   : "
+			<< std::setfill('0') << std::setw(2) << abss.hours << ":"
+			<< std::setw(2) << static_cast<int>(abss.minutes) << ":"
+			<< std::setw(2) << static_cast<int>(abss.seconds)
+			<< " + " << abss.samples << " samples" << std::endl;
+		std::cout << std::dec << std::setfill(' ') << std::endl;
 	}
 
 	unsigned int channels() const
