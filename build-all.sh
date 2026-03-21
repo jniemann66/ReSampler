@@ -70,6 +70,31 @@ build_mingw() {
     cmake --build "$WIN_BUILD_DIR" #--verbose
 }
 
+# Function to package Linux DEB + RPM
+package_linux() {
+    echo "--- Packaging Linux DEB + RPM ---"
+    cmake . -B build/package -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++
+    cmake --build build/package
+    cd build/package && cpack -G "DEB;RPM" && cd ../..
+}
+
+# Function to package Windows NSIS installer (cross-compiled)
+package_windows() {
+    echo "--- Packaging Windows NSIS installer ---"
+    cmake . -B build/win_x86-64 -DCMAKE_TOOLCHAIN_FILE=toolchain-mingw64.cmake -DCMAKE_BUILD_TYPE=Release
+    cmake --build build/win_x86-64
+    cd build/win_x86-64 && cpack -G NSIS && cd ../..
+}
+
+# Parse arguments
+PACKAGE=false
+for arg in "$@"; do
+    case "$arg" in
+        --package) PACKAGE=true ;;
+        *) echo "Unknown argument: $arg"; exit 1 ;;
+    esac
+done
+
 echo ""
 build_gcc
 echo ""
@@ -77,15 +102,21 @@ build_clang
 echo ""
 build_gcc_quadmath
 
-
 # if mingw-w64 detected, cross-compile for Windows
-MINGW_GCC="x86_64-w64-mingw32-gcc"
+MINGW_GCC="x86_64-w64-mingw32-gcc-posix"
 echo ""
 if command -v "$MINGW_GCC" &> /dev/null; then
     echo "$MINGW_GCC found!"
     "$MINGW_GCC" --version
 # todo: activate when ready ...
-    #build_mingw 
+    #build_mingw
 else
     echo "$MINGW_GCC not found."
+fi
+
+if [ "$PACKAGE" = true ]; then
+    echo ""
+    package_linux
+    echo ""
+    package_windows
 fi
