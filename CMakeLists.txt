@@ -178,6 +178,34 @@ else()
 
 	# On Windows (cross-compile or native), bundle the required DLLs
 	if(WIN32 OR CMAKE_CROSSCOMPILING)
+
+		# Bundle MinGW runtime DLLs.
+		# Check known locations directly — avoids toolchain root-path re-rooting issues.
+		set(_mingw_dll_search_dirs
+			# Debian/Ubuntu: compiler places DLLs alongside its libraries
+			"/usr/lib/gcc/x86_64-w64-mingw32/9.3-posix"
+			"/usr/lib/gcc/x86_64-w64-mingw32/12-posix"
+			"/usr/lib/gcc/x86_64-w64-mingw32/13-posix"
+			# openSUSE/Fedora: DLLs live in the mingw sysroot
+			"${CMAKE_FIND_ROOT_PATH}/sys-root/mingw/bin"
+			"${CMAKE_FIND_ROOT_PATH}/bin"
+		)
+		foreach(dll libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll)
+			set(_dll_path "_dll_path-NOTFOUND")
+			foreach(search_dir ${_mingw_dll_search_dirs})
+				if(EXISTS "${search_dir}/${dll}")
+					set(_dll_path "${search_dir}/${dll}")
+					break()
+				endif()
+			endforeach()
+			if(EXISTS "${_dll_path}")
+				message(STATUS "Bundling runtime DLL: ${_dll_path}")
+				install(FILES "${_dll_path}" DESTINATION bin)
+			else()
+				message(WARNING "Runtime DLL not found, skipping: ${dll}")
+			endif()
+		endforeach()
+
 		install(FILES
 			"${FFTW_DIR}/libfftw3-3.dll"
 			"${SNDFILE_DIR}/bin/sndfile.dll"
