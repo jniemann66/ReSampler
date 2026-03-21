@@ -42,10 +42,12 @@ jobs:
         - cd build/package && cpack -G "DEB;RPM"
       deploy:
         provider: releases
-        api_key: $GITHUB_TOKEN
-        file_glob: true
-        file: build/package/ReSampler-*
-        skip_cleanup: true
+        edge: true
+        token: $GITHUB_TOKEN
+        file:
+          - build/package/ReSampler-2.1.2-Linux.deb
+          - build/package/ReSampler-2.1.2-Linux.rpm
+        cleanup: false
         on:
           tags: true
 
@@ -64,9 +66,9 @@ jobs:
         - cd build/win_x86-64 && cpack -G NSIS
       deploy:
         provider: releases
-        api_key: $GITHUB_TOKEN
-        file_glob: true
+        edge: true
+        token: $GITHUB_TOKEN
         file: build/win_x86-64/ReSampler-*.exe
-        skip_cleanup: true
+        cleanup: false
         on:
           tags: true
