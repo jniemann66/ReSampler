@@ -5,10 +5,12 @@ set(CMAKE_SYSTEM_NAME Windows)
 set(CMAKE_SYSTEM_PROCESSOR x86_64)
 
 # specify the cross compiler
-# Use the posix threading variant — required for std::mutex / std::thread / std::future.
-# The win32 variant omits these C++11 threading primitives.
-set(CMAKE_C_COMPILER x86_64-w64-mingw32-gcc-posix)
-set(CMAKE_CXX_COMPILER x86_64-w64-mingw32-g++-posix)
+# Prefer the explicit posix-threading variant (Debian/Ubuntu ships both win32 and posix variants).
+# On openSUSE/Fedora the plain name already uses posix threading, so fall back to that.
+find_program(MINGW_C   NAMES x86_64-w64-mingw32-gcc-posix x86_64-w64-mingw32-gcc REQUIRED)
+find_program(MINGW_CXX NAMES x86_64-w64-mingw32-g++-posix x86_64-w64-mingw32-g++ REQUIRED)
+set(CMAKE_C_COMPILER   ${MINGW_C})
+set(CMAKE_CXX_COMPILER ${MINGW_CXX})
 set(CMAKE_RC_COMPILER x86_64-w64-mingw32-windres)
 
 # where is the target environment

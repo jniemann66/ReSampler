@@ -103,9 +103,16 @@ echo ""
 build_gcc_quadmath
 
 # if mingw-w64 detected, cross-compile for Windows
-MINGW_GCC="x86_64-w64-mingw32-gcc-posix"
+# (try posix-suffixed variant first for Debian/Ubuntu, fall back to plain name for openSUSE/Fedora)
+MINGW_GCC=""
+for candidate in x86_64-w64-mingw32-gcc-posix x86_64-w64-mingw32-gcc; do
+    if command -v "$candidate" &> /dev/null; then
+        MINGW_GCC="$candidate"
+        break
+    fi
+done
 echo ""
-if command -v "$MINGW_GCC" &> /dev/null; then
+if [ -n "$MINGW_GCC" ]; then
     echo "$MINGW_GCC found!"
     "$MINGW_GCC" --version
 # todo: activate when ready ...
