@@ -76,7 +76,7 @@ void printFileInfo(const std::string& filename)
 		return;
 	}
 
-	// libsndfile path for everything else
+	// use libsndfile to open all other types of files
 	SF_INFO sfinfo{};
 	sfinfo.format = 0;
 	SNDFILE* sf = sf_open(filename.c_str(), SFM_READ, &sfinfo);

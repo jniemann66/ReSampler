@@ -1,20 +1,72 @@
 language: bash
-before_install:
-  # build latest libsndfile from source
-  - sudo apt-get update
-  - sudo apt-get install -y build-essential wget # Install build tools
-  - wget https://github.com/libsndfile/libsndfile/releases/download/1.2.2/libsndfile-1.2.2.tar.xz # Get latest (check releases for newer)
-  - tar -xf libsndfile-1.2.2.tar.xz
-  - cd libsndfile-1.2.2
-  - ./configure
-  - make
-  - sudo make install
-  - cd ..
-  # install libfftw3
-  - sudo apt-get install -y libfftw3-dev build-essential
+os: linux
+dist: focal
 
-script:
-  - apt-cache policy libsndfile1
-  - chmod u+x build-all.sh
-  - ./build-all.sh
+jobs:
+  include:
 
+    # -----------------------------------------------------------------------
+    # Normal build: runs on every commit
+    # Builds with GCC, Clang, and GCC Quadmath (existing behaviour)
+    # -----------------------------------------------------------------------
+    - name: "Build (GCC / Clang / Quadmath)"
+      before_install:
+        - sudo apt-get update
+        - sudo apt-get install -y build-essential wget clang
+        # Build latest libsndfile from source
+        - wget https://github.com/libsndfile/libsndfile/releases/download/1.2.2/libsndfile-1.2.2.tar.xz
+        - tar -xf libsndfile-1.2.2.tar.xz
+        - cd libsndfile-1.2.2 && ./configure && make && sudo make install && cd ..
+        - sudo apt-get install -y libfftw3-dev
+      script:
+        - apt-cache policy libsndfile1
+        - chmod u+x build-all.sh
+        - ./build-all.sh
+
+    # -----------------------------------------------------------------------
+    # Package: Linux DEB + RPM  (tagged commits only)
+    # -----------------------------------------------------------------------
+    - name: "Package: Linux DEB + RPM"
+      if: tag IS present
+      before_install:
+        - sudo apt-get update
+        - sudo apt-get install -y build-essential wget rpm
+        # Build latest libsndfile from source
+        - wget https://github.com/libsndfile/libsndfile/releases/download/1.2.2/libsndfile-1.2.2.tar.xz
+        - tar -xf libsndfile-1.2.2.tar.xz
+        - cd libsndfile-1.2.2 && ./configure && make && sudo make install && cd ..
+        - sudo apt-get install -y libfftw3-dev
+      script:
+        - cmake . -B build/package -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++
+        - cmake --build build/package
+        - cd build/package && cpack -G "DEB;RPM"
+      deploy:
+        provider: releases
+        token: $GITHUB_TOKEN
+        file_glob: true
+        file: build/package/ReSampler-*.{deb,rpm}
+        skip_cleanup: true
+        on:
+          tags: true
+
+    # -----------------------------------------------------------------------
+    # Package: Windows NSIS installer, cross-compiled from Linux (tagged only)
+    # -----------------------------------------------------------------------
+    - name: "Package: Windows NSIS"
+      if: tag IS present
+      before_install:
+        - sudo apt-get update
+        - sudo apt-get install -y build-essential nsis mingw-w64
+        # No need to build libsndfile/fftw — pre-built Windows DLLs are in the repo
+      script:
+        - cmake . -B build/win_x86-64 -DCMAKE_TOOLCHAIN_FILE=toolchain-mingw64.cmake -DCMAKE_BUILD_TYPE=Release
+        - cmake --build build/win_x86-64
+        - cd build/win_x86-64 && cpack -G NSIS
+      deploy:
+        provider: releases
+        token: $GITHUB_TOKEN
+        file_glob: true
+        file: build/win_x86-64/ReSampler-*.exe
+        skip_cleanup: true
+        on:
+          tags: true

@@ -176,4 +176,65 @@ else()
 	add_executable(ReSampler main.cpp)
 	target_link_libraries(ReSampler ReSamplerLib)
 
+	# Install the executable
+	install(TARGETS ReSampler RUNTIME DESTINATION bin)
+
+	# On Windows (cross-compile or native), bundle the required DLLs
+	if(WIN32 OR CMAKE_CROSSCOMPILING)
+		install(FILES
+			"${FFTW_DIR}/libfftw3-3.dll"
+			"${SNDFILE_DIR}/bin/sndfile.dll"
+			DESTINATION bin
+		)
+	endif()
+
 endif()
+
+# -------------------------------------------------------------------------
+# CPack packaging
+# -------------------------------------------------------------------------
+
+set(CPACK_PACKAGE_NAME "ReSampler")
+set(CPACK_PACKAGE_VENDOR "jniemann66")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "High-quality audio sample rate converter")
+set(CPACK_PACKAGE_VERSION "2.1.2")
+set(CPACK_PACKAGE_VERSION_MAJOR "2")
+set(CPACK_PACKAGE_VERSION_MINOR "1")
+set(CPACK_PACKAGE_VERSION_PATCH "2")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "ReSampler")
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+	set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+endif()
+# Note: add a LICENSE file (LGPL-2.1) to the project root to enable the
+# license page in NSIS installers and embed it in DEB/RPM packages.
+
+# --- Windows: NSIS installer ---
+set(CPACK_NSIS_DISPLAY_NAME "ReSampler")
+set(CPACK_NSIS_PACKAGE_NAME "ReSampler ${CPACK_PACKAGE_VERSION}")
+set(CPACK_NSIS_INSTALL_ROOT "$PROGRAMFILES64")
+set(CPACK_NSIS_MODIFY_PATH ON)   # offer to add install dir to PATH
+set(CPACK_NSIS_CREATE_ICONS_EXTRA
+    "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\ReSampler.lnk' '$INSTDIR\\\\bin\\\\ReSampler.exe'")
+set(CPACK_NSIS_DELETE_ICONS_EXTRA
+    "Delete '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\ReSampler.lnk'")
+
+# --- Linux: DEB package ---
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "jniemann66")
+set(CPACK_DEBIAN_PACKAGE_SECTION "sound")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libsndfile1 (>= 1.0), libfftw3-double3 (>= 3.3)")
+
+# --- Linux: RPM package ---
+set(CPACK_RPM_PACKAGE_LICENSE "LGPL-2.1")
+set(CPACK_RPM_PACKAGE_GROUP "Applications/Multimedia")
+set(CPACK_RPM_PACKAGE_REQUIRES "libsndfile >= 1.0, fftw >= 3.3")
+
+# Default generators per platform
+if(WIN32 OR CMAKE_CROSSCOMPILING)
+	set(CPACK_GENERATOR "NSIS")
+elseif(APPLE)
+	set(CPACK_GENERATOR "ZIP")
+else()
+	set(CPACK_GENERATOR "DEB;RPM")
+endif()
+
+include(CPack)
