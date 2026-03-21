@@ -83,7 +83,7 @@ else()
 
 		find_library(SNDFILE_LIBRARY
 			NAMES sndfile
-			HINTS ${SNDFILE_DIR}
+			HINTS ${SNDFILE_DIR}/lib
 		)
 
 	message(STATUS "libsndfile library location: " ${SNDFILE_LIBRARY})
