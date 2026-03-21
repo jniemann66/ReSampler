@@ -81,10 +81,7 @@ else()
 		include_directories(${SNDFILE_DIR}/include ${FFTW_DIR})
 		link_directories(${SNDFILE_DIR}/lib ${FFTW_DIR})
 
-		find_library(SNDFILE_LIBRARY
-			NAMES sndfile
-			HINTS ${SNDFILE_DIR}/lib
-		)
+		set(SNDFILE_LIBRARY "${SNDFILE_DIR}/lib/sndfile.lib")
 
 	message(STATUS "libsndfile library location: " ${SNDFILE_LIBRARY})
 
