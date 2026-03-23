@@ -253,11 +253,15 @@ set(CPACK_RPM_PACKAGE_LICENSE "LGPL-2.1")
 set(CPACK_RPM_PACKAGE_GROUP "Applications/Multimedia")
 set(CPACK_RPM_PACKAGE_REQUIRES "libsndfile >= 1.0, fftw >= 3.3")
 
+# --- macOS: DMG ---
+set(CPACK_DMG_VOLUME_NAME "ReSampler")
+set(CPACK_DMG_FORMAT "UDZO")
+
 # Default generators per platform
 if(WIN32 OR CMAKE_CROSSCOMPILING)
 	set(CPACK_GENERATOR "NSIS")
 elseif(APPLE)
-	set(CPACK_GENERATOR "ZIP")
+	set(CPACK_GENERATOR "DragNDrop")
 else()
 	set(CPACK_GENERATOR "DEB;RPM")
 endif()
