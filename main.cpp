@@ -60,8 +60,6 @@ void androidCleanup() {
 #endif // defined(__ANDROID__)
 
 #include "ReSampler.h"
-#include "mpxdecode.h"
-#include "iqdemodulator.h"
 
 int main(int argc, char * argv[])
 {
