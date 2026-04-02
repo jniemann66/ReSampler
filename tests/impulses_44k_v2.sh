@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # new method of generating impulse responses, which doesn't require an input file
+# (instead, it uses the new --exportIR option)
 
 # note: ensure ReSampler in your PATH
 resampler_path=ReSampler
