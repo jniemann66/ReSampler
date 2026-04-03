@@ -36,20 +36,19 @@ jobs:
         - tar -xf libsndfile-1.2.2.tar.xz
         - cd libsndfile-1.2.2 && ./configure && make && sudo make install && cd ..
         - sudo apt-get install -y libfftw3-dev
+        # Install gh CLI for uploading release assets
+        - curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+        - echo "deb [arch=amd64 signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+        - sudo apt-get update -qq && sudo apt-get install -y gh
       script:
         - cmake . -B build/package -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++
         - cmake --build build/package
         - cd build/package && cpack -G "DEB;RPM"
-      deploy:
-        provider: releases
-        edge: true
-        token: $GITHUB_TOKEN
-        file:
-          - build/package/ReSampler-2.1.2-Linux.deb
-          - build/package/ReSampler-2.1.2-Linux.rpm
-        cleanup: false
-        on:
-          tags: true
+      after_success:
+        # Create the release if it doesn't exist yet (other jobs may have already created it)
+        - GH_TOKEN=$GITHUB_TOKEN gh release create $TRAVIS_TAG --title "$TRAVIS_TAG" --repo jniemann66/ReSampler || true
+        # Upload both packages, replacing any existing assets
+        - GH_TOKEN=$GITHUB_TOKEN gh release upload $TRAVIS_TAG build/package/ReSampler-*.deb build/package/ReSampler-*.rpm --repo jniemann66/ReSampler --clobber
 
     # -----------------------------------------------------------------------
     # Package: Windows NSIS installer, cross-compiled from Linux (tagged only)
@@ -60,18 +59,16 @@ jobs:
         - sudo apt-get update
         - sudo apt-get install -y build-essential nsis mingw-w64
         # No need to build libsndfile/fftw — pre-built Windows DLLs are in the repo
+        # Install gh CLI for uploading release assets
+        - curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+        - echo "deb [arch=amd64 signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+        - sudo apt-get update -qq && sudo apt-get install -y gh
       script:
         - cmake . -B build/win_x86-64 -DCMAKE_TOOLCHAIN_FILE=toolchain-mingw64.cmake -DCMAKE_BUILD_TYPE=Release
         - cmake --build build/win_x86-64
         - cd build/win_x86-64 && cpack -G NSIS && cpack -G ZIP
-      deploy:
-        provider: releases
-        edge: true
-        token: $GITHUB_TOKEN
-        file:
-          - build/win_x86-64/ReSampler-2.1.2-win64.exe
-          - build/win_x86-64/ReSampler-2.1.2-win64.zip
-        overwrite: true
-        cleanup: false
-        on:
-          tags: true
+      after_success:
+        # Create the release if it doesn't exist yet (other jobs may have already created it)
+        - GH_TOKEN=$GITHUB_TOKEN gh release create $TRAVIS_TAG --title "$TRAVIS_TAG" --repo jniemann66/ReSampler || true
+        # Upload both installer and zip, replacing any existing assets
+        - GH_TOKEN=$GITHUB_TOKEN gh release upload $TRAVIS_TAG build/win_x86-64/ReSampler-*.exe build/win_x86-64/ReSampler-*.zip --repo jniemann66/ReSampler --clobber
