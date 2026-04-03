@@ -63,12 +63,15 @@ jobs:
       script:
         - cmake . -B build/win_x86-64 -DCMAKE_TOOLCHAIN_FILE=toolchain-mingw64.cmake -DCMAKE_BUILD_TYPE=Release
         - cmake --build build/win_x86-64
-        - cd build/win_x86-64 && cpack -G NSIS
+        - cd build/win_x86-64 && cpack -G NSIS && cpack -G ZIP
       deploy:
         provider: releases
         edge: true
         token: $GITHUB_TOKEN
-        file: build/win_x86-64/ReSampler-*.exe
+        glob: true
+        file:
+          - build/win_x86-64/ReSampler-*.exe
+          - build/win_x86-64/ReSampler-*.zip
         cleanup: false
         on:
           tags: true
