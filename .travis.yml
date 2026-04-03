@@ -68,10 +68,9 @@ jobs:
         provider: releases
         edge: true
         token: $GITHUB_TOKEN
-        glob: true
         file:
-          - build/win_x86-64/ReSampler-*.exe
-          - build/win_x86-64/ReSampler-*.zip
+          - build/win_x86-64/ReSampler-2.1.2-win64.exe
+          - build/win_x86-64/ReSampler-2.1.2-win64.zip
         cleanup: false
         on:
           tags: true
