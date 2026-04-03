@@ -71,6 +71,7 @@ jobs:
         file:
           - build/win_x86-64/ReSampler-2.1.2-win64.exe
           - build/win_x86-64/ReSampler-2.1.2-win64.zip
+        overwrite: true
         cleanup: false
         on:
           tags: true
