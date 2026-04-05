@@ -21,6 +21,7 @@ template <typename FloatType>
 class Effect
 {
 public:
+	virtual ~Effect() = default;
 	virtual const FloatType* process(const FloatType* inputBuffer, int sampleCount) = 0;
 
 	// getters
